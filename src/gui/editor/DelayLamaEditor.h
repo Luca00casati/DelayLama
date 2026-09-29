@@ -16,7 +16,9 @@ namespace DamSDK {
 }
 
 namespace DelayLama {
-    namespace Core { class DelayLamaPlugin; }
+    namespace Core {
+        class DelayLamaPlugin;
+    }
     namespace Gui {
         namespace Controls {
             class Monk;
