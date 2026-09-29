@@ -35,12 +35,8 @@ namespace DelayLama {
 namespace Gui{
 
     // VTABLE: DELAYLAMA 0x1000b8b8
-    class DelayLamaEditor : public DamSDK::Api::EditorBase {
-        private:
-            static DelayLamaEditor* currentEditor;
+    class DelayLamaEditor : public DamSDK::Api::EditorBase, public DamSDK::Gui::Controls::ControlListener {
         public:
-            char unused[3];
-            DamSDK::Gui::Controls::callbackCallback callback;
             Monk* monk;
             TwoAxisSlider* singingController;
             VerticalSlider* singingVerticalSlider;
@@ -60,8 +56,7 @@ namespace Gui{
         public:
             DelayLamaEditor(Core::DelayLamaPlugin* pluginInstance);
             ~DelayLamaEditor();
-            static void onControlChangedThunk(GDIDrawingContext* drawingContext, Control* control);
-            void onControlChanged(GDIDrawingContext* drawingContext, Control* control);
+            virtual void valueChanged(GDIDrawingContext* drawingContext, Control* control) override;
             int32_t open(HWND hParent) override;
             void dispatcher(int parameterIndex, float value) override;
             void close() override;

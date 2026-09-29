@@ -9,7 +9,7 @@ namespace Gui {
 namespace Controls {
 
     // FUNCTION: DELAYLAMA 0x10004600
-    Monk::Monk(RECT *pRect, DamSDK::Gui::Controls::callbackCallback callback, int parameterId, int frameCount, int tileHeight, DamSDK::Gui::Platform::Windows::Bitmap *bmp, POINT *srcOffset) : TileGrid(pRect, callback, parameterId, frameCount, tileHeight, bmp, srcOffset)
+    Monk::Monk(RECT *pRect, DamSDK::Gui::Controls::ControlListener* listener, int parameterId, int frameCount, int tileHeight, DamSDK::Gui::Platform::Windows::Bitmap *bmp, POINT *srcOffset) : TileGrid(pRect, listener, parameterId, frameCount, tileHeight, bmp, srcOffset)
     {
         Utils::log("Monk::ctor\n");
     }

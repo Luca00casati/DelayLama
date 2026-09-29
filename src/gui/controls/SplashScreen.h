@@ -15,7 +15,7 @@ namespace Controls {
             POINT srcPoint;
             
         public:
-            SplashScreen(RECT *pRect, DamSDK::Gui::Controls::callbackCallback callback, int parameterId, DamSDK::Gui::Platform::Windows::Bitmap *bmp, RECT *destRect,POINT *srcPoint);
+            SplashScreen(RECT *pRect, DamSDK::Gui::Controls::ControlListener* listener, int parameterId, DamSDK::Gui::Platform::Windows::Bitmap *bmp, RECT *destRect,POINT *srcPoint);
             ~SplashScreen();
             virtual void onDraw(DamSDK::Gui::Platform::Windows::GDIDrawingContext* drawingContect) override;
             virtual void onMouseDown(DamSDK::Gui::Platform::Windows::GDIDrawingContext* drawingContext, POINT* mousePos) override;

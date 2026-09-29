@@ -1,3 +1,4 @@
+#include "damsdk/gui/platform/windows/GDIDrawingContext.h"
 #include "SplashScreen.h"
 #include "damsdk/gui/platform/windows/Bitmap.h"
 #include "damsdk/gui/platform/windows/Window.h"
@@ -8,7 +9,7 @@ namespace Gui {
 namespace Controls {
     
     // FUNCTION: DELAYLAMA 0x1000a530
-    SplashScreen::SplashScreen(RECT *pRect, DamSDK::Gui::Controls::callbackCallback callback, int parameterId, DamSDK::Gui::Platform::Windows::Bitmap *bmp, RECT *destRect, POINT *srcPoint) : DamSDK::Gui::Controls::Control(pRect, callback, parameterId, bmp)
+    SplashScreen::SplashScreen(RECT *pRect, DamSDK::Gui::Controls::ControlListener* listener, int parameterId, DamSDK::Gui::Platform::Windows::Bitmap *bmp, RECT *destRect, POINT *srcPoint) : DamSDK::Gui::Controls::Control(pRect, listener, parameterId, bmp)
     {
         Utils::log("SplashScreen::ctor\n");
         this->destRect.left = destRect->left;
@@ -46,7 +47,7 @@ namespace Controls {
 
     // FUNCTION: DELAYLAMA 0x1000a630
     void SplashScreen::onMouseDown(DamSDK::Gui::Platform::Windows::GDIDrawingContext* drawingContext, POINT* mousePos) {
-        if (this->isEnabled && (View::GetPressedModifiersAndMouseButtons() & 0x1) != 0) {
+        if (this->isEnabled && (drawingContext->getMouseButtons() & 0x1) != 0) {
             bool isDismissing = (this->value == 0.0f);
             Utils::logf("SplashScreen::onMouseDown %s\n", isDismissing ? "show" : "dismiss");
             this->value = (float)(int)isDismissing;
@@ -64,7 +65,7 @@ namespace Controls {
                     parentPtr->onDraw(drawingContext);
                 }
 
-                this->callback(drawingContext, this);
+                this->listener->valueChanged(drawingContext, this);
             }
             else {
                 // Show: set modal view and save current rect to absRect
@@ -83,7 +84,7 @@ namespace Controls {
                     rectPtr->bottom = this->destRect.bottom;
 
                     this->onDraw(drawingContext);
-                    this->callback(drawingContext, this);
+                    this->listener->valueChanged(drawingContext, this);
                     this->setDirty(true);
                     return;
                 }
