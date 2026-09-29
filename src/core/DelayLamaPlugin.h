@@ -12,7 +12,7 @@ namespace Core {
         explicit DelayLamaPlugin(DamSDK::Api::dispatchFunc hostCallback);
         virtual ~DelayLamaPlugin();
         virtual void setParameterValue(int32_t parameterIndex,float parameterValue) override;
-        virtual void destroy() override;
+        void destroy();
     };
 }
 }

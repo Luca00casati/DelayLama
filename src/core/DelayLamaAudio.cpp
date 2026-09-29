@@ -10,7 +10,7 @@
 namespace DelayLama {
 namespace Core {
 
-    // FUNCTION DELAYLAMA: 0x10002820
+    // FUNCTION: DELAYLAMA 0x10002820
     DelayLamaAudio::DelayLamaAudio(DamSDK::Api::dispatchFunc hostCallback) : DamSDK::Api::AudioBaseExtended(hostCallback, PRESET_COUNT, PARAMETER_COUNT) {
         Utils::log("DelayLamaAudio::ctor\n");
         this->synthesisBuffer = nullptr;
@@ -54,16 +54,16 @@ namespace Core {
         this->monkSprite = 0.1667f;
     }
 
-    // FUNCTION DELAYLAMA: 0x10002980
+    // FUNCTION: DELAYLAMA 0x10002980
     DelayLamaAudio::~DelayLamaAudio() {}
 
-    // FUNCTION DELAYLAMA: 0x10003110
+    // FUNCTION: DELAYLAMA 0x10003110
     bool DelayLamaAudio::getPluginName(char *outText) {
         strcpy(outText, "Delay Lama");
         return true;
     }
     
-    // FUNCTION DELAYLAMA: 0x10003140
+    // FUNCTION: DELAYLAMA 0x10003140
     bool DelayLamaAudio::getCompanyName(char *outText) {
         strcpy(outText, "AudioNerdz");
         return true;
@@ -447,7 +447,7 @@ namespace Core {
     const float closeEyes = MONK_FRAME_VAL(0, 2);
     const float openEyes  = MONK_FRAME_VAL(0, 5);
 
-    // FUNCTION DELAYLAMA: 0x100054c0
+    // FUNCTION: DELAYLAMA 0x100054c0
     void DelayLamaAudio::processAudio(float** inputs, float** outputs, int32_t sampleFrames)
     {
         float *outRight = outputs[1];
@@ -782,7 +782,7 @@ namespace Core {
         }
     }
 
-    // FUNCTION DELAYLAMA: 0x10002db0
+    // FUNCTION: DELAYLAMA 0x10002db0
     void DelayLamaAudio::setParameterValue(int32_t parameterId, float value)
     {
         switch (parameterId)
@@ -1063,8 +1063,8 @@ namespace Core {
 
         switch (parameterId) {
             case 0: strcpy(outBuffer, "PortTime"); return;
-            case 1: strcpy(outBuffer, "Vowel"); return;
-            case 2: strcpy(outBuffer, "Delay"); return;
+            case 1: strcpy(outBuffer, " Vowel  "); return;
+            case 2: strcpy(outBuffer, " Delay "); return;
             case 3: strcpy(outBuffer, "HeadSize"); return;
             default: return;
         }
@@ -1135,6 +1135,15 @@ namespace Core {
         const char* src = "Virtual Singing Monk"; 
         ::strcpy(outText, src);
         return true;
+    }
+
+    // FUNCTION: DELAYLAMA 0x100031a0
+    bool DelayLamaAudio::pluginSupports(char* target) {
+        if (strcmp(target, "receiveDamEvents") == 0 || strcmp(target, "receiveVstEvents") == 0) return 1;
+        if (strcmp(target, "receiveDamMidiEvent") == 0 || strcmp(target, "receiveVstMidiEvent") == 0) return 1;
+        if (strcmp(target, "sendDamMidiEvent") == 0 || strcmp(target, "sendVstMidiEvent") == 0) return 1;
+        if (strcmp(target, "sendDamEvents") == 0 || strcmp(target, "sendVstEvents") == 0) return 1;
+        return 0;
     }
 
     // FUNCTION: DELAYLAMA 0x10004870
@@ -1426,9 +1435,10 @@ namespace Core {
     }
 
     // FUNCTION: DELAYLAMA 0x100061e0
-    void DelayLamaAudio::processEvents(DamSDK::Api::DamEventList* eventList) {
+    int32_t DelayLamaAudio::processEvents(void* events) {
+        DamSDK::Api::DamEventList* eventList = (DamSDK::Api::DamEventList*)events;
         if (eventList == nullptr || eventList->count <= 0) {
-            return;
+            return 1;
         }
 
         Utils::logf("DelayLamaAudio::processEvents count=%d\n", eventList->count);
@@ -1450,6 +1460,8 @@ namespace Core {
                 ++writeIndex;
             }
         }
+
+        return 1;
     }
 
     // FUNCTION: DELAYLAMA 0x10006240

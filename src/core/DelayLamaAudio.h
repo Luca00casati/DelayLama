@@ -150,11 +150,10 @@ namespace Core {
             virtual bool getPluginName(char* outText) override;
             virtual bool getCompanyName(char* outText) override;
             virtual void setParameterValue(int32_t parameterId, float value) override;
-            virtual void initialize();
+            void initialize();
             virtual void processAudio(float** inputs,float** outputs,int32_t sampleFrames) override;
-            virtual void initPresets();
-            virtual bool sendEventsToHost(DamSDK::Api::DamMidiEventList* eventsPtr);
-            virtual void destroy();
+            bool sendEventsToHost(DamSDK::Api::DamMidiEventList* eventsPtr);
+            void destroy();
             virtual void loadPresetByIndex(int32_t currentProgram) override;
             virtual void setCurrentPresetName(char* newName) override;
             virtual void getCurrentPresetName(char* outText) override;
@@ -166,18 +165,22 @@ namespace Core {
             virtual bool getPresetNameByIndex(int32_t category, int32_t index, char* outText) override;
             virtual bool copyPreset(int32_t param_1) override;
             virtual bool getProductName(char* outText) override;
+            virtual bool pluginSupports(char* target) override;
             virtual void setSampleRate(float sampleRate) override;
             virtual void setMaxFramesPerProcess(int32_t blocksize) override;
             virtual void disableAudioProcessing() override;
             virtual void enableAudioProcessing() override;
-            virtual void buildFormantCurveTable(int32_t* controlPoints, float* outSamples);
+            void buildFormantCurveTable(int32_t* controlPoints, float* outSamples);
             virtual void invokeAudioProcess(float* * inputs, float* * outputs, int32_t sampleFrames) override;
-            virtual void dispatchMidiEvents(int sampleIdx, int sampleFrame);
-            virtual void addSynthesisToExcitation(int offsetIncrement);
-            virtual void synthesizeVowelBuffer(float vowelX);
-            virtual void processEvents(DamSDK::Api::DamEventList* eventList);
-            virtual void handleNoteEvent(int midiData1, int midiData2);
-            virtual void handleControlChange(int midiData1, int midiData2);
+            void dispatchMidiEvents(int sampleIdx, int sampleFrame);
+            void addSynthesisToExcitation(int offsetIncrement);
+            void synthesizeVowelBuffer(float vowelX);
+            virtual int32_t processEvents(void* events) override;
+            void handleNoteEvent(int midiData1, int midiData2);
+            void handleControlChange(int midiData1, int midiData2);
+
+            // New virtual functions, in the original vtable order (after AudioBaseExtended).
+            virtual void initPresets();
             virtual float getRandomFloat();
             virtual void sendMidiToHost(uint8_t status, uint8_t data1, uint8_t data2);
     };
