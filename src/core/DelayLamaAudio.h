@@ -51,7 +51,7 @@ namespace Core {
             bool isGlideActive; // 0x6141
             bool formantTableNeedsUpdate; // 0x6142
             bool unusedBool; // 0x6143
-            int pitchTargetValue; // 0x6144
+            float pitchTargetValue; // 0x6144
             int formantMorphStep; // 0x6148
             float formantMorphValue; // 0x614c
             bool isGateActive; // 0x6150

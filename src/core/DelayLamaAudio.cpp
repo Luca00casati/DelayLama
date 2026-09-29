@@ -614,7 +614,7 @@ namespace Core {
                         float normalizedVibrato = (nextVibratoValue - 36.0f) * 0.083333336f;
                         this->vibratoDepthCurrent = normalizedVibrato;
                         this->setParameterValue(SingingHorizontalSliderParameterId, normalizedVibrato);
-                        this->pitchTargetValue = (int)this->vibratoCurrent;
+                        this->pitchTargetValue = this->vibratoCurrent;
                     }
                 }
 
@@ -674,16 +674,16 @@ namespace Core {
                     // Portamento/Glide
                     if (this->isGateActive == false)
                     {
-                        this->formantMorphValue = (float)this->pitchTargetValue;
+                        this->formantMorphValue = this->pitchTargetValue;
                     }
                     else
                     {
                         // Calculate glide delta based on Portamento Time and Sample Rate
-                        if (this->formantMorphValue <= (float)this->pitchTargetValue + 0.2)
+                        if (this->formantMorphValue <= this->pitchTargetValue + 0.2)
                         {
-                            if ((float)this->pitchTargetValue - 0.2 <= this->formantMorphValue)
+                            if (this->pitchTargetValue - 0.2 <= this->formantMorphValue)
                             {
-                                this->formantMorphValue = (float)this->pitchTargetValue;
+                                this->formantMorphValue = this->pitchTargetValue;
                                 this->formantMorphStep = 0;
                             }
                             else
@@ -1449,74 +1449,52 @@ namespace Core {
     }
 
     // FUNCTION: DELAYLAMA 0x10006240
-    void DelayLamaAudio::handleNoteEvent(int midiData1, int midiData2)
-    {
-        Utils::logf("DelayLamaAudio::handleNoteEvent note=%d velocity=%d\n", midiData1, midiData2);
-        // Apply a -12 offset (one octave) to incoming MIDI notes
-        int noteWithOffset = midiData1 + -0xc;
-        // Note off
-        if (midiData2 == 0)
-        {
-            if ((noteWithOffset < 0x49) && (3 < noteWithOffset))
-            {
-                int i = 0;
-                do
-                {
-                    int currentNote = this->noteStack[i];
-                    int* nextNote = this->noteStack + i;
-                    if (currentNote == noteWithOffset)
-                    {
-                        while (currentNote != 0)
-                        {
-                            i = i + 1;
-                            *nextNote = nextNote[1];
-                            int* piVar1 = nextNote + 1;
-                            nextNote = nextNote + 1;
-                            currentNote = *piVar1;
-                        }
-                    }
-                    i = i + 1;
-                } while (i < 128);
+    void DelayLamaAudio::handleNoteEvent(int midiData1, int midiData2) {
+        // Notes are played one octave lower than received.
+        int note;
+        int i;
+
+        midiData1 -= 12;
+        note = midiData1;
+
+        if (midiData2 != 0) {
+            // Note on: push the note onto the front of the stack.
+            if (note <= 72 && note > 3) {
+                for (i = 127; i >= 0; i--) {
+                    if (this->noteStack[127] != 0)
+                        break;
+                    if (this->noteStack[i] != 0)
+                        this->noteStack[i + 1] = this->noteStack[i];
+                }
+                this->noteStack[0] = note;
             }
         }
-        else
-        {
-            // Note on
-            if ((noteWithOffset < 73) && (3 < noteWithOffset))
-            {
-                int* noteStackPtr = this->noteStack + 127;
-                int i = 127;
-                int * nextNote = noteStackPtr;
-                do
-                {
-                    if (*noteStackPtr != 0)
-                        break;
-                    if (*nextNote != 0)
-                    {
-                        nextNote[1] = *nextNote;
+        else {
+            // Note off: remove the note from the stack.
+            if (note <= 72 && note > 3) {
+                for (i = 0; i <= 127; i++) {
+                    if (this->noteStack[i] == note) {
+                        while (this->noteStack[i] != 0) {
+                            this->noteStack[i] = this->noteStack[i + 1];
+                            i++;
+                        }
                     }
-                    i = i + -1;
-                    nextNote = nextNote + -1;
-                } while (-1 < i);
-                this->noteStack[0] = noteWithOffset;
+                }
             }
         }
 
         int activeNote = this->noteStack[0];
-        this->pitchTargetValue = (int)(float)activeNote;
+        this->pitchTargetValue = (float)activeNote;
         this->isSinging = activeNote != 0;
 
-        if (activeNote == 0)
-        {
+        if (activeNote == 0) {
             this->isGateActive = false;
-            this->setParameterValue(MonkSpriteParameterId, MONK_FRAME_VAL(0, 5));
+            this->setParameterValue(MonkSpriteParameterId, 0.1667f);  // mouth closed
             this->currentIdleFrame = 0;
             this->needsMonkAnimationRefresh = true;
         }
-        if ((this->noteStack[1] != 0) && (this->isGateActive == false))
-        {
+        if (this->noteStack[1] != 0 && this->isGateActive == false)
             this->isGateActive = true;
-        }
     }
 
     // FUNCTION: DELAYLAMA 0x10006330
