@@ -34,8 +34,8 @@ namespace Core {
             DamSDK::Api::DamMidiEventList midiEventList; // 0x40fc
             int unknownMidi; // 0x410c
             int32_t midiDataValue; // 0x4110
-            int currentMidiEventData2; // 0x4114
-            int currentMidiEventData1; // 0x4118
+            int currentMidiEventData1; // 0x4114
+            int currentMidiEventData2; // 0x4118
             int pitchBase; //A midi note // 0x411c
             int pitchTargetRaw; //A midi note // 0x4120
             float outputGain; // 0x4124

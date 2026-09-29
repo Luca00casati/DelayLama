@@ -448,8 +448,8 @@ namespace Core {
         this->isGlideActive = false;
         this->isSinging = false;
         this->formantTableNeedsUpdate = true;
-        this->currentMidiEventData2 = 0;
-        this->currentMidiEventData1 = 1;
+        this->currentMidiEventData1 = 0;
+        this->currentMidiEventData2 = 1;
         this->outputGain = 0.1f;
         this->pitchValueDirty = false;
         this->vibratoDirty = false;
@@ -1231,71 +1231,56 @@ namespace Core {
     // FUNCTION: DELAYLAMA 0x10005ca0
     void DelayLamaAudio::dispatchMidiEvents(int sampleIdx, int sampleFrame) {
         int pitchInterpCount = 0;
-        int currentReadPtr = 0;
+
         if (this->midiQueue[this->midiEventReadIndex].timestamp == sampleIdx) {
-            int* pitchInterpQueue = this->pitchInterpData2;
             do {
-                int currentMidiEvent = this->midiEventReadIndex;
-                int statusByte = this->midiQueue[currentMidiEvent].status;
-                if (statusByte == 0) break;
-                int midiCommand = statusByte & 0xf0;
+                int status = this->midiQueue[this->midiEventReadIndex].status;
+                if (status == 0)
+                    break;
+                status &= 0xf0;
 
-                // Handle note on (0x90) / Note off (0x80)
-                if ((midiCommand == 0x90) || (midiCommand == 0x80)) {
-                    int midiData2 = this->midiQueue[currentMidiEvent].data2 & 0x7f;
-                    if (midiCommand == 0x80) {
-                        midiData2 = 0;
-                    }
-                    this->handleNoteEvent(this->midiQueue[currentMidiEvent].data1 & 0x7f,midiData2);
+                if (status == 0x90 || status == 0x80) {
+                    // Note on / note off
+                    int note = this->midiQueue[this->midiEventReadIndex].data1 & 0x7f;
+                    int velocity = this->midiQueue[this->midiEventReadIndex].data2 & 0x7f;
+                    if (status == 0x80)
+                        velocity = 0;
+                    this->handleNoteEvent(note, velocity);
                 }
-                else {
-
-                    // Handle control change (0xB0)
-                    if (midiCommand == 0xb0) {
-                        int midiData1 = this->midiQueue[currentMidiEvent].data1 & 0x7f;
-                        this->currentMidiEventData1 = midiData1;
-                        int midiData2 = this->midiQueue[currentMidiEvent].data2 & 0x7f;
-                        this->currentMidiEventData2 = midiData2;
-                        this->handleControlChange(midiData1,midiData2);
+                else if (status == 0xb0) {
+                    // Control change
+                    this->currentMidiEventData1 = this->midiQueue[this->midiEventReadIndex].data1 & 0x7f;
+                    this->currentMidiEventData2 = this->midiQueue[this->midiEventReadIndex].data2 & 0x7f;
+                    this->handleControlChange(this->currentMidiEventData1, this->currentMidiEventData2);
+                }
+                else if (status == 0xe0) {
+                    // Pitch bend
+                    if (sampleIdx != 0) {
+                        this->pitchBase = this->midiQueue[this->midiEventReadIndex].data1 & 0x7f;
+                        this->pitchTargetDirty = true;
+                        this->pitchTargetRaw = this->midiQueue[this->midiEventReadIndex].data2 & 0x7f;
                     }
                     else {
-                        // Handle pitch bend (0xE0)
-                        if (midiCommand == 0xe0) {
-                            // If the bend happens at the very start of the buffer (sample 0), the plugin sets up an interpolation routine to smooth the pitch change.
-                            if (sampleIdx == 0) {
-                                // Store data in a temporary "interpolation queue" to be spread across the buffer
-                                pitchInterpQueue[-0x400] = this->midiQueue[currentMidiEvent].data1 & 0x7f;
-                                pitchInterpCount = pitchInterpCount + 1;
-                                *pitchInterpQueue =
-                                    this->midiQueue[this->midiEventReadIndex].data2 & 0x7f;
-                                pitchInterpQueue = pitchInterpQueue + 1;
-                            }
-                            else {
-                                this->pitchBase = this->midiQueue[currentMidiEvent].data1 & 0x7f;
-                                int bendValue = this->midiQueue[currentMidiEvent].data2;
-                                this->pitchTargetDirty = true;
-                                this->pitchTargetRaw = bendValue & 0x7f;
-                            }
-                        }
+                        // Bends at the start of the buffer are spread across it below.
+                        this->pitchInterpData1[pitchInterpCount] = this->midiQueue[this->midiEventReadIndex].data1 & 0x7f;
+                        this->pitchInterpData2[pitchInterpCount] = this->midiQueue[this->midiEventReadIndex].data2 & 0x7f;
+                        pitchInterpCount++;
                     }
                 }
-            
-                // Wipe the queue slot so it isn't processed twice
+
+                // Clear the slot and move on
                 this->midiQueue[this->midiEventReadIndex].timestamp = 0;
                 this->midiQueue[this->midiEventReadIndex].status = 0;
                 this->midiQueue[this->midiEventReadIndex].data1 = 0;
                 this->midiQueue[this->midiEventReadIndex].data2 = 0;
+                this->midiEventReadIndex++;
+            } while (this->midiQueue[this->midiEventReadIndex].timestamp == sampleIdx);
 
-                // Advance the read pointer
-                currentReadPtr = this->midiEventReadIndex;
-                this->midiEventReadIndex = currentReadPtr + 1;
-            } while (this->midiQueue[currentReadPtr + 1].timestamp == sampleIdx);
-            // If multiple pitch bend events occurred at sample 0, calculate how many samples to wait between each update to spread them evenly across the buffer (sampleFrameCount).
             if (pitchInterpCount != 0) {
                 this->isInterpActive = 1;
                 this->interpEventCount = pitchInterpCount;
                 this->interpCurrentIdx = 0;
-                this->interpSampleStep = (sampleFrame + -2) / pitchInterpCount;
+                this->interpSampleStep = (sampleFrame - 2) / pitchInterpCount;
             }
         }
 
