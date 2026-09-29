@@ -26,7 +26,7 @@ namespace Core {
         return 1;
     }
 
-    // FUNCTION DELAYLAMA: 0x10003560
+    // FUNCTION: DELAYLAMA 0x10003560
     extern "C" __declspec(dllexport) DamSDK::Api::DamPlugin* __cdecl VSTPluginMain(DamSDK::Api::dispatchFunc hostCallback)
     {
 #ifdef DELAYLAMA_DEBUG_CONSOLE

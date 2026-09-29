@@ -21,7 +21,7 @@ namespace Gui{
 
     DelayLamaEditor* DelayLamaEditor::currentEditor = nullptr;
 
-    // FUNCTION DELAYLAMA: 0x10003640
+    // FUNCTION: DELAYLAMA 0x10003640
     DelayLamaEditor::DelayLamaEditor(Core::DelayLamaPlugin* pluginInstance) : DamSDK::Api::EditorBase((DamSDK::Api::AudioBaseExtended*)pluginInstance) {
         Utils::log("DelayLamaEditor::ctor\n");
         currentEditor = this;
@@ -122,7 +122,7 @@ namespace Gui{
         destroy();
     }
 
-    // FUNCTION DELAYLAMA: 0x10003820
+    // FUNCTION: DELAYLAMA 0x10003820
     void DelayLamaEditor::open(HWND parentWnd)
     {
         Utils::log("DelayLamaEditor::open\n");
@@ -316,7 +316,7 @@ namespace Gui{
         this->window->registerControl((DamSDK::Gui::Controls::Control*)this->splashScreen);
     }
 
-    // FUNCTION DELAYLAMA: 0x100040c0
+    // FUNCTION: DELAYLAMA 0x100040c0
     void DelayLamaEditor::dispatcher(int parameterIndex, float parameterValue)
     {
         Utils::logf("DelayLamaEditor::dispatcher id=%d value=%f\n", parameterIndex, parameterValue);

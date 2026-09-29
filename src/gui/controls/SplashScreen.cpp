@@ -7,7 +7,7 @@ namespace DelayLama {
 namespace Gui {
 namespace Controls {
     
-    // FUNCTION DELAYLAMA: 0x1000a530
+    // FUNCTION: DELAYLAMA 0x1000a530
     SplashScreen::SplashScreen(RECT *pRect, DamSDK::Gui::Controls::callbackCallback callback, int parameterId, DamSDK::Gui::Platform::Windows::Bitmap *bmp, RECT *destRect, POINT *srcPoint) : DamSDK::Gui::Controls::Control(pRect, callback, parameterId, bmp)
     {
         Utils::log("SplashScreen::ctor\n");
@@ -25,17 +25,17 @@ namespace Controls {
         this->srcPoint.y = srcPoint->y;
     }
 
-    // FUNCTION DELAYLAMA: 0x1000a5a0
+    // FUNCTION: DELAYLAMA 0x1000a5a0
     SplashScreen::~SplashScreen() {
         this->destroy();
     }
 
-    // FUNCTION DELAYLAMA: 0x1000a5c0
+    // FUNCTION: DELAYLAMA 0x1000a5c0
     void SplashScreen::destroy() {
         Control::destroy();
     }
 
-    // FUNCTION DELAYLAMA: 0x1000a5d0
+    // FUNCTION: DELAYLAMA 0x1000a5d0
     void SplashScreen::onDraw(DamSDK::Gui::Platform::Windows::GDIDrawingContext* drawingContext) {
         DamSDK::Gui::Platform::Windows::Bitmap* bitmap = this->bitmap;
 
@@ -50,7 +50,7 @@ namespace Controls {
         this->setDirty(false);
     }
 
-    // FUNCTION DELAYLAMA: 0x1000a630
+    // FUNCTION: DELAYLAMA 0x1000a630
     void SplashScreen::onMouseDown(DamSDK::Gui::Platform::Windows::GDIDrawingContext* drawingContext, POINT* mousePos) {
         if (this->isEnabled && (View::GetPressedModifiersAndMouseButtons() & 0x1) != 0) {
             bool isDismissing = (this->value == 0.0f);
