@@ -52,7 +52,7 @@ namespace Core {
             bool formantTableNeedsUpdate; // 0x6142
             bool unusedBool; // 0x6143
             float pitchTargetValue; // 0x6144
-            int formantMorphStep; // 0x6148
+            float formantMorphStep; // 0x6148
             float formantMorphValue; // 0x614c
             bool isGateActive; // 0x6150
             char unusedBytes04[3]; // 0x6151
@@ -89,7 +89,7 @@ namespace Core {
             int pitchTarget; // 0x63c8
             int pitchDelta; // 0x63cc
             int pitchSmoothingFramesRemaining; // 0x63d0
-            int pitchStep; // 0x63d4
+            float pitchStep; // 0x63d4
             float vibratoCurrent; // 0x63d8
             float vibratoTarget; // 0x63dc
             float vibratoDelta; // 0x63e0

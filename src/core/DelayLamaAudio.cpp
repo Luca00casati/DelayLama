@@ -516,24 +516,13 @@ namespace Core {
         float *outLeft = outputs[0];
         this->midiEventReadIndex = 0;
 
-        // Ensure the write index for the internal excitation buffer stays within bounds
-        int bufferWriteIndex = this->excitationWriteIndex;
-        int excitationBufferSizeCheck = this->excitationBufferSize;
         int sampleIdx = 0;
 
-        // Wrap index down if it exceeds the buffer size
-        if (excitationBufferSizeCheck <= bufferWriteIndex)
-        {
-            this->excitationWriteIndex = bufferWriteIndex - excitationBufferSizeCheck;
-        }
-
-        // Wrap index up if it goes below zero
-        int bufferWriteIndexCheck = this->excitationWriteIndex;
-        if (bufferWriteIndexCheck < 0)
-        {
-            this->excitationWriteIndex =
-                bufferWriteIndexCheck + this->excitationBufferSize;
-        }
+        // Keep the excitation buffer write index within the buffer
+        if (this->excitationWriteIndex >= this->excitationBufferSize)
+            this->excitationWriteIndex -= this->excitationBufferSize;
+        if (this->excitationWriteIndex < 0)
+            this->excitationWriteIndex += this->excitationBufferSize;
 
         // Control Rate Loop (MIDI, Envelopes, LFOs, Vowel Morphing)
         int frame;
@@ -555,7 +544,7 @@ namespace Core {
                     
                     int pitchDeltaVal = targetPitch - this->pitchCurrent;
                     this->pitchDelta = pitchDeltaVal;
-                    this->pitchStep = (int)(float)(pitchDeltaVal / this->smoothingFrames);
+                    this->pitchStep = (float)(pitchDeltaVal / this->smoothingFrames);
                     this->pitchSmoothingFramesRemaining = this->smoothingFrames;
                 }
 
@@ -567,7 +556,7 @@ namespace Core {
                     this->pitchTarget = tempPitchTarget;
                     int tempPitchDelta = tempPitchTarget - this->pitchCurrent;
                     this->pitchDelta = tempPitchDelta;
-                    this->pitchStep = static_cast<int>(static_cast<float>(tempPitchDelta) / static_cast<float>(this->smoothingFrames));
+                    this->pitchStep = (float)(tempPitchDelta / this->smoothingFrames);
                     this->pitchSmoothingFramesRemaining = this->smoothingFrames;
                 }
 
@@ -688,15 +677,15 @@ namespace Core {
                             }
                             else
                             {
-                                this->formantMorphStep = (int)(12.0 / ((this->portamentoTime + 0.01) * this->pluginSampleRate));
+                                this->formantMorphStep = (float)(12.0 / ((this->portamentoTime + 0.01) * this->pluginSampleRate));
                             }
                         }
                         else
                         {
-                            this->formantMorphStep = (int)(-12.0 / ((this->portamentoTime + 0.01) * this->pluginSampleRate));
+                            this->formantMorphStep = (float)(-12.0 / ((this->portamentoTime + 0.01) * this->pluginSampleRate));
                         }
                         this->formantMorphValue =
-                            this->formantMorphValue + (float)this->formantMorphStep;
+                            this->formantMorphValue + this->formantMorphStep;
                     }
 
                     // LFO Calculation (Frequency Wobble)
