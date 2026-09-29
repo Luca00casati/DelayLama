@@ -4,6 +4,7 @@
 namespace DelayLama {
 namespace Gui {
 namespace Controls {
+    // VTABLE: DELAYLAMA 0x1000bf34
     class TileGrid : public DamSDK::Gui::Controls::Control {
         public:
             POINT srcOffset;
