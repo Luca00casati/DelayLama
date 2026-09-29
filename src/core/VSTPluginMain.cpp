@@ -11,13 +11,13 @@ using namespace Utils;
 namespace DelayLama {
 namespace Core {
 
-    // GLOBAL: DELAYLAMA: 0x1000d404
+    // GLOBAL: DELAYLAMA 0x1000d404
     bool g_bInitFailed = false;
 
-    // GLOBAL: DELAYLAMA: 0x1000c248
+    // GLOBAL: DELAYLAMA 0x1000c248
     LONG g_cRefCount = 0;
 
-    // GLOBAL: DELAYLAMA: 0x1000b080
+    // GLOBAL: DELAYLAMA 0x1000b080
     void* g_pfnCustomInit = nullptr;
 
     // STUB: CRT initialization handler

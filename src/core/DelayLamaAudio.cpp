@@ -71,15 +71,15 @@ namespace Core {
 
     const int kPitchBendCenter = 8192; 
     const int kExcitationBufferSize = 10240;
-    const double kDelayTimeSeconds = 0.02;  // 20 milliseconds
-    const double kPi = 3.141592654f;  // pi
-    const double kPi2 = 6.283185307f;  // 2.0 * pi
-    const double kPi50 = 157.0796327;  // 50.0 * pi
-    const double kMidiNote0Frequency = 8.175798916; 
-    const double kAttackTime  = 0.0018;
-    const double kSustainTime = 0.013;
-    const double kReleaseTime = 0.007;
-    const float kPitchToFloatScale = 1.0f / 16384.0f;
+#define kDelayTimeSeconds ((double)(0.02))  // 20 milliseconds
+#define kPi ((double)(3.141592654f))  // pi
+#define kPi2 ((double)(6.283185307f))  // 2.0 * pi
+#define kPi50 ((double)(157.0796327))  // 50.0 * pi
+#define kMidiNote0Frequency ((double)(8.175798916))
+#define kAttackTime ((double)(0.0018))
+#define kSustainTime ((double)(0.013))
+#define kReleaseTime ((double)(0.007))
+#define kPitchToFloatScale ((float)(1.0f / 16384.0f))
 
     // FUNCTION: DELAYLAMA 0x100048d0
     void DelayLamaAudio::initialize() {
@@ -443,9 +443,9 @@ namespace Core {
         this->vibratoSmoothingFramesRemaining = 0;
     }
 
-    const float kPitchScaleFactor = 16384.0f;
-    const float closeEyes = MONK_FRAME_VAL(0, 2);
-    const float openEyes  = MONK_FRAME_VAL(0, 5);
+#define kPitchScaleFactor ((float)(16384.0f))
+#define closeEyes ((float)(MONK_FRAME_VAL(0, 2)))
+#define openEyes ((float)(MONK_FRAME_VAL(0, 5)))
 
     // FUNCTION: DELAYLAMA 0x100054c0
     void DelayLamaAudio::processAudio(float** inputs, float** outputs, int32_t sampleFrames)
@@ -1363,7 +1363,7 @@ namespace Core {
         return;
     }
 
-    const float kTableIndexMax = 1279.0f;
+#define kTableIndexMax ((float)(1279.0f))
     
     // FUNCTION: DELAYLAMA 0x10005fb0
     void DelayLamaAudio::synthesizeVowelBuffer(float vowelX) {
