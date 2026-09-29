@@ -1432,30 +1432,19 @@ namespace Core {
     // FUNCTION: DELAYLAMA 0x100061e0
     int32_t DelayLamaAudio::processEvents(void* events) {
         DamSDK::Api::DamEventList* eventList = (DamSDK::Api::DamEventList*)events;
-        if (eventList == nullptr || eventList->count <= 0) {
-            return 1;
-        }
+        int queued = 0;
 
-        Utils::logf("DelayLamaAudio::processEvents count=%d\n", eventList->count);
-
-        int writeIndex = 0;
-
-        for (int i = 0; i < eventList->count; ++i) {
-            const DamSDK::Api::DamEvent& evt = eventList->events[i];
-
-            // Only process MIDI events
-            if (evt.eventType == 1) {
-                DamSDK::Api::MidiEvent& outEvent = this->midiQueue[writeIndex];
-
-                outEvent.timestamp = evt.frames;
-                outEvent.status   = (evt.flags >> 16) & 0xFF;
-                outEvent.data1    = (evt.flags >> 8) & 0xFF;
-                outEvent.data2    = evt.eventSize;
-
-                ++writeIndex;
+        // Queue the MIDI events; processAudio dispatches them at their sample offset.
+        for (int i = 0; i < eventList->count; i++) {
+            DamSDK::Api::DamMidiEvent* event = (DamSDK::Api::DamMidiEvent*)eventList->events[i];
+            if (event->event.eventType == 1) {
+                this->midiQueue[queued].timestamp = event->event.frames;
+                this->midiQueue[queued].status = (char)event->midiData[0];
+                this->midiQueue[queued].data1 = (char)event->midiData[1];
+                this->midiQueue[queued].data2 = (char)event->midiData[2];
+                queued++;
             }
         }
-
         return 1;
     }
 
