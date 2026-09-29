@@ -162,7 +162,7 @@ namespace Gui{
     }
 
     // FUNCTION: DELAYLAMA 0x10003820
-    void DelayLamaEditor::open(HWND parentWnd)
+    int32_t DelayLamaEditor::open(HWND parentWnd)
     {
         Utils::log("DelayLamaEditor::open\n");
         EditorBase::open(parentWnd);
@@ -353,6 +353,8 @@ namespace Gui{
 
         this->splashScreen = new Controls::SplashScreen(&splashBoundsRect, this->callback, SplashScreenParameterId, this->aboutScreenBitmap, &splashRect, &origin);
         this->window->registerControl((DamSDK::Gui::Controls::Control*)this->splashScreen);
+
+        return 1;
     }
 
     // FUNCTION: DELAYLAMA 0x100040c0

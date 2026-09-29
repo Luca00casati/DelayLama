@@ -60,7 +60,7 @@ namespace Gui{
             ~DelayLamaEditor();
             static void onControlChangedThunk(GDIDrawingContext* drawingContext, Control* control);
             void onControlChanged(GDIDrawingContext* drawingContext, Control* control);
-            void open(HWND hParent) override;
+            int32_t open(HWND hParent) override;
             void dispatcher(int parameterIndex, float value) override;
             void close() override;
     };   

@@ -153,7 +153,6 @@ namespace Core {
             void initialize();
             virtual void processAudio(float** inputs,float** outputs,int32_t sampleFrames) override;
             bool sendEventsToHost(DamSDK::Api::DamMidiEventList* eventsPtr);
-            void destroy();
             virtual void loadPresetByIndex(int32_t currentProgram) override;
             virtual void setCurrentPresetName(char* newName) override;
             virtual void getCurrentPresetName(char* outText) override;

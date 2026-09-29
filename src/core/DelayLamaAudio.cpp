@@ -28,7 +28,6 @@ namespace Core {
         this->formantTable3 = nullptr;
         this->isSinging = false;
 
-
         this->presets = new Preset[5];
 
         if (this->presets != nullptr) {
@@ -54,8 +53,71 @@ namespace Core {
         this->monkSprite = 0.1667f;
     }
 
-    // FUNCTION: DELAYLAMA 0x10002980
-    DelayLamaAudio::~DelayLamaAudio() {}
+    // FUNCTION: DELAYLAMA 0x100029a0
+    DelayLamaAudio::~DelayLamaAudio() {
+        Utils::log("DelayLamaAudio::destroy\n");
+
+        if (this->presets != nullptr) {
+            delete[] this->presets;
+            this->presets = nullptr;
+        }
+
+        // Delete all dynamically allocated float buffers
+        if (this->synthesisBuffer != nullptr) {
+            delete[] this->synthesisBuffer;
+            this->synthesisBuffer = nullptr;
+        }
+        if (this->excitationBuffer != nullptr) {
+            delete[] this->excitationBuffer;
+            this->excitationBuffer = nullptr;
+        }
+        if (this->sineTable != nullptr) {
+            delete[] this->sineTable;
+            this->sineTable = nullptr;
+        }
+        if (this->formantTable != nullptr) {
+            delete[] this->formantTable;
+            this->formantTable = nullptr;
+        }
+        if (this->vocalEnvelope != nullptr) {
+            delete[] this->vocalEnvelope;
+            this->vocalEnvelope = nullptr;
+        }
+        if (this->glottalSource != nullptr) {
+            delete[] this->glottalSource;
+            this->glottalSource = nullptr;
+        }
+        if (this->harmonicBuffer != nullptr) {
+            delete[] this->harmonicBuffer;
+            this->harmonicBuffer = nullptr;
+        }
+        if (this->frequencyTable != nullptr) {
+            delete[] this->frequencyTable;
+            this->frequencyTable = nullptr;
+        }
+        if (this->stereoDelayLBuffer != nullptr) {
+            delete[] this->stereoDelayLBuffer;
+            this->stereoDelayLBuffer = nullptr;
+        }
+        if (this->stereoDelayRBuffer != nullptr) {
+            delete[] this->stereoDelayRBuffer;
+            this->stereoDelayRBuffer = nullptr;
+        }
+        if (this->formantTable1 != nullptr) {
+            delete[] this->formantTable1;
+            this->formantTable1 = nullptr;
+        }
+        if (this->formantTable2 != nullptr) {
+            delete[] this->formantTable2;
+            this->formantTable2 = nullptr;
+        }
+        if (this->formantTable3 != nullptr) {
+            delete[] this->formantTable3;
+            this->formantTable3 = nullptr;
+        }
+
+        // Call base class destructor
+    }
 
     // FUNCTION: DELAYLAMA 0x10003110
     bool DelayLamaAudio::getPluginName(char *outText) {
@@ -929,73 +991,6 @@ namespace Core {
             return (resultInt == 1);
         }
         return false;
-    }
-
-    // FUNCTION: DELAYLAMA 0x100029a0
-    void DelayLamaAudio::destroy() {
-        Utils::log("DelayLamaAudio::destroy\n");
-
-        if (this->presets != nullptr) {
-            delete[] this->presets;
-            this->presets = nullptr;
-        }
-
-        // Delete all dynamically allocated float buffers
-        if (this->synthesisBuffer != nullptr) {
-            delete[] this->synthesisBuffer;
-            this->synthesisBuffer = nullptr;
-        }
-        if (this->excitationBuffer != nullptr) {
-            delete[] this->excitationBuffer;
-            this->excitationBuffer = nullptr;
-        }
-        if (this->sineTable != nullptr) {
-            delete[] this->sineTable;
-            this->sineTable = nullptr;
-        }
-        if (this->formantTable != nullptr) {
-            delete[] this->formantTable;
-            this->formantTable = nullptr;
-        }
-        if (this->vocalEnvelope != nullptr) {
-            delete[] this->vocalEnvelope;
-            this->vocalEnvelope = nullptr;
-        }
-        if (this->glottalSource != nullptr) {
-            delete[] this->glottalSource;
-            this->glottalSource = nullptr;
-        }
-        if (this->harmonicBuffer != nullptr) {
-            delete[] this->harmonicBuffer;
-            this->harmonicBuffer = nullptr;
-        }
-        if (this->frequencyTable != nullptr) {
-            delete[] this->frequencyTable;
-            this->frequencyTable = nullptr;
-        }
-        if (this->stereoDelayLBuffer != nullptr) {
-            delete[] this->stereoDelayLBuffer;
-            this->stereoDelayLBuffer = nullptr;
-        }
-        if (this->stereoDelayRBuffer != nullptr) {
-            delete[] this->stereoDelayRBuffer;
-            this->stereoDelayRBuffer = nullptr;
-        }
-        if (this->formantTable1 != nullptr) {
-            delete[] this->formantTable1;
-            this->formantTable1 = nullptr;
-        }
-        if (this->formantTable2 != nullptr) {
-            delete[] this->formantTable2;
-            this->formantTable2 = nullptr;
-        }
-        if (this->formantTable3 != nullptr) {
-            delete[] this->formantTable3;
-            this->formantTable3 = nullptr;
-        }
-
-        // Call base class destructor
-        AudioBaseExtended::destroy();
     }
 
     // FUNCTION: DELAYLAMA 0x10002b10

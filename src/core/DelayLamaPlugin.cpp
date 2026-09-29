@@ -18,9 +18,8 @@ namespace Core {
         }
     }
 
-    // FUNCTION: DELAYLAMA 0x10003500
-    DelayLamaPlugin::~DelayLamaPlugin() {
-    }
+    // FUNCTION: DELAYLAMA 0x10003520
+    DelayLamaPlugin::~DelayLamaPlugin() {}
 
     // FUNCTION: DELAYLAMA 0x10003530
     void DelayLamaPlugin::setParameterValue(int32_t parameterIndex,float parameterValue) {
@@ -33,12 +32,5 @@ namespace Core {
         }
     }
 
-    // STUB: DELAYLAMA 0x10003520
-    void DelayLamaPlugin::destroy() {
-        Utils::log("DelayLamaPlugin::destroy\n");
-        // this->vtable = &DelayLama_vtable;
-        // DelayLamaAudio::destroy((DelayLamaAudio *)this);
-        // return;
-    }
 }
 }
