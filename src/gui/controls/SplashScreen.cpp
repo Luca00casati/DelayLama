@@ -25,14 +25,8 @@ namespace Controls {
         this->srcPoint.y = srcPoint->y;
     }
 
-    // FUNCTION: DELAYLAMA 0x1000a5a0
-    SplashScreen::~SplashScreen() {
-        this->destroy();
-    }
-
     // FUNCTION: DELAYLAMA 0x1000a5c0
-    void SplashScreen::destroy() {
-        Control::destroy();
+    SplashScreen::~SplashScreen() {
     }
 
     // FUNCTION: DELAYLAMA 0x1000a5d0

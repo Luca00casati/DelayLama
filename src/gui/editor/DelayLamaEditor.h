@@ -62,7 +62,6 @@ namespace Gui{
             void onControlChanged(GDIDrawingContext* drawingContext, Control* control);
             void open(HWND hParent) override;
             void dispatcher(int parameterIndex, float value) override;
-            void destroy();
             void close() override;
     };   
 }

@@ -117,9 +117,48 @@ namespace Gui{
         }
     }
 
-    // FUNCTION: DELAYLAMA 0x10003710
+    // FUNCTION: DELAYLAMA 0x10003740
     DelayLamaEditor::~DelayLamaEditor() {
-        destroy();
+        Utils::log("DelayLamaEditor::destroy\n");
+        if (this->backgroundBitmap != nullptr) {
+          this->backgroundBitmap->unregisterBitmap();
+        }
+        this->backgroundBitmap = nullptr;
+
+        if (this->reverbHandleBitmap != nullptr) {
+          this->reverbHandleBitmap->unregisterBitmap();
+        }
+        this->reverbHandleBitmap = nullptr;
+
+        if (this->singingYHandleBitmap != nullptr) {
+          this->singingYHandleBitmap->unregisterBitmap();
+        }
+        this->singingYHandleBitmap = nullptr;
+
+        if (this->singingXHandleBitmap != nullptr) {
+          this->singingXHandleBitmap->unregisterBitmap();
+        }
+        this->singingXHandleBitmap = nullptr;
+
+        if (this->monkSpriteSheetBitmap != nullptr) {
+          this->monkSpriteSheetBitmap->unregisterBitmap();
+        }
+        this->monkSpriteSheetBitmap = nullptr;
+
+        if (this->aboutScreenBitmap != nullptr) {
+          this->aboutScreenBitmap->unregisterBitmap();
+        }
+        this->aboutScreenBitmap = nullptr;
+
+        if (this->leftKnobBitmap != nullptr) {
+          this->leftKnobBitmap->unregisterBitmap();
+        }
+        this->leftKnobBitmap = nullptr;
+
+        if (this->rightKnobBitmap != nullptr) {
+          this->rightKnobBitmap->unregisterBitmap();
+        }
+        this->rightKnobBitmap = nullptr;
     }
 
     // FUNCTION: DELAYLAMA 0x10003820
@@ -365,52 +404,6 @@ namespace Gui{
         }
 
         invalidate();
-    }
-
-    // FUNCTION: DELAYLAMA 0x10003740
-    void DelayLamaEditor::destroy() {
-        Utils::log("DelayLamaEditor::destroy\n");
-        if (this->backgroundBitmap != nullptr) {
-          Bitmap::unregisterBitmap(this->backgroundBitmap);
-        }
-        this->backgroundBitmap = nullptr;
-
-        if (this->reverbHandleBitmap != nullptr) {
-          Bitmap::unregisterBitmap(this->reverbHandleBitmap);
-        }
-        this->reverbHandleBitmap = nullptr;
-
-        if (this->singingYHandleBitmap != nullptr) {
-          Bitmap::unregisterBitmap(this->singingYHandleBitmap);
-        }
-        this->singingYHandleBitmap = nullptr;
-
-        if (this->singingXHandleBitmap != nullptr) {
-          Bitmap::unregisterBitmap(this->singingXHandleBitmap);
-        }
-        this->singingXHandleBitmap = nullptr;
-
-        if (this->monkSpriteSheetBitmap != nullptr) {
-          Bitmap::unregisterBitmap(this->monkSpriteSheetBitmap);
-        }
-        this->monkSpriteSheetBitmap = nullptr;
-
-        if (this->aboutScreenBitmap != nullptr) {
-          Bitmap::unregisterBitmap(this->aboutScreenBitmap);
-        }
-        this->aboutScreenBitmap = nullptr;
-
-        if (this->leftKnobBitmap != nullptr) {
-          Bitmap::unregisterBitmap(this->leftKnobBitmap);
-        }
-        this->leftKnobBitmap = nullptr;
-
-        if (this->rightKnobBitmap != nullptr) {
-          Bitmap::unregisterBitmap(this->rightKnobBitmap);
-        }
-        this->rightKnobBitmap = nullptr;
-
-        EditorBase::destroy();
     }
 
     // FUNCTION: DELAYLAMA 0x100040a0

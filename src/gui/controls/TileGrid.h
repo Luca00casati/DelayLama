@@ -12,7 +12,6 @@ namespace Controls {
         public:
             TileGrid(RECT *pRect, DamSDK::Gui::Controls::callbackCallback callback, int parameterId, int frameCount, int tileHeight, DamSDK::Gui::Platform::Windows::Bitmap *bmp, POINT *srcOffset);
             ~TileGrid();
-            void destroy();
             virtual void onDraw(DamSDK::Gui::Platform::Windows::GDIDrawingContext* drawingContext) override;
     };
     }

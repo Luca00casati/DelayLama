@@ -14,11 +14,6 @@ namespace Controls {
         Utils::log("Monk::ctor\n");
     }
 
-    // FUNCTION: DELAYLAMA 0x10004650
-    Monk::~Monk() {
-        TileGrid::destroy();
-    }
-
     // FUNCTION: DELAYLAMA 0x100046a0
     void Monk::onDraw(DamSDK::Gui::Platform::Windows::GDIDrawingContext* drawingContext)
     {
