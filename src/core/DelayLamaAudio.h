@@ -164,7 +164,7 @@ namespace Core {
             virtual bool getPresetNameByIndex(int32_t category, int32_t index, char* outText) override;
             virtual bool copyPreset(int32_t param_1) override;
             virtual bool getProductName(char* outText) override;
-            virtual bool pluginSupports(char* target) override;
+            virtual int32_t pluginSupports(char* target) override;
             virtual void setSampleRate(float sampleRate) override;
             virtual void setMaxFramesPerProcess(int32_t blocksize) override;
             virtual void disableAudioProcessing() override;

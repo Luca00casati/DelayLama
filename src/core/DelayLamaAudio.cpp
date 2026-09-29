@@ -1133,7 +1133,7 @@ namespace Core {
     }
 
     // FUNCTION: DELAYLAMA 0x100031a0
-    bool DelayLamaAudio::pluginSupports(char* target) {
+    int32_t DelayLamaAudio::pluginSupports(char* target) {
         if (strcmp(target, "receiveDamEvents") == 0 || strcmp(target, "receiveVstEvents") == 0) return 1;
         if (strcmp(target, "receiveDamMidiEvent") == 0 || strcmp(target, "receiveVstMidiEvent") == 0) return 1;
         if (strcmp(target, "sendDamMidiEvent") == 0 || strcmp(target, "sendVstMidiEvent") == 0) return 1;
