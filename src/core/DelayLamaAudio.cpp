@@ -141,7 +141,7 @@ namespace Core {
 #define kAttackTime ((double)(0.0018))
 #define kSustainTime ((double)(0.013))
 #define kReleaseTime ((double)(0.007))
-#define kPitchToFloatScale ((float)(1.0f / 16384.0f))
+#define kPitchToFloatScale ((float)(1.0f / 16383.0f))  // as in the original
 
     // FUNCTION: DELAYLAMA 0x100048d0
     void DelayLamaAudio::initialize() {
@@ -506,17 +506,18 @@ namespace Core {
     }
 
 #define kPitchScaleFactor ((float)(16384.0f))
-#define closeEyes ((float)(MONK_FRAME_VAL(0, 2)))
-#define openEyes ((float)(MONK_FRAME_VAL(0, 5)))
+#define closeEyes 0.06667f  // rounded literals, as in the original
+#define openEyes 0.16667f
 
     // FUNCTION: DELAYLAMA 0x100054c0
     void DelayLamaAudio::processAudio(float** inputs, float** outputs, int32_t sampleFrames)
     {
-        float *outRight = outputs[1];
-        float *outLeft = outputs[0];
-        this->midiEventReadIndex = 0;
-
+        float* outLeft = outputs[0];
+        float* outRight = outputs[1];
         int sampleIdx = 0;
+        int frames;
+
+        this->midiEventReadIndex = 0;
 
         // Keep the excitation buffer write index within the buffer
         if (this->excitationWriteIndex >= this->excitationBufferSize)
@@ -524,312 +525,187 @@ namespace Core {
         if (this->excitationWriteIndex < 0)
             this->excitationWriteIndex += this->excitationBufferSize;
 
-        // Control Rate Loop (MIDI, Envelopes, LFOs, Vowel Morphing)
-        int frame;
-        if (-1 < sampleFrames + -1)
+        // Control rate: MIDI, parameter smoothing, animation, LFO and voice synthesis
+        frames = sampleFrames;
+        while (--frames >= 0)
         {
-            frame = sampleFrames;
-            do
+            this->dispatchMidiEvents(sampleIdx, sampleFrames);
+
+            // Pitch bend
+            if (this->pitchTargetDirty == true)
             {
-                // Check for MIDI Note On/Off/CC at this specific sample offset
-                this->dispatchMidiEvents(sampleIdx, sampleFrames);
+                this->pitchTargetDirty = false;
+                this->pitchTarget = this->pitchTargetRaw * 128 + this->pitchBase;
+                this->pitchDelta = this->pitchTarget - this->pitchCurrent;
+                this->pitchStep = (float)(this->pitchDelta / this->smoothingFrames);
+                this->pitchSmoothingFramesRemaining = this->smoothingFrames;
+            }
 
-                // Pitch Smoothing Trigger
-                if (this->pitchTargetDirty == true)
+            // Pitch parameter changed
+            if (this->pitchValueDirty == true)
+            {
+                this->pitchValueDirty = false;
+                this->pitchTarget = (long)(this->pitchValue * kPitchScaleFactor);
+                this->pitchDelta = this->pitchTarget - this->pitchCurrent;
+                this->pitchStep = (float)(this->pitchDelta / this->smoothingFrames);
+                this->pitchSmoothingFramesRemaining = this->smoothingFrames;
+            }
+
+            // Vibrato parameter changed
+            if (this->vibratoDirty == true)
+            {
+                this->vibratoDirty = false;
+                this->vibratoTarget = this->vibratoAmount * 12.0f + 36.0f;
+                this->vibratoDelta = this->vibratoTarget - this->vibratoCurrent;
+                this->vibratoStep = this->vibratoDelta / this->smoothingFrames;
+                this->vibratoSmoothingFramesRemaining = this->smoothingFrames;
+            }
+
+            // Parameter smoothing
+            if (this->smoothStep >= this->smoothCounter)
+            {
+                this->smoothStep = 0;
+                if (this->pitchSmoothingFramesRemaining > 0)
                 {
-                    this->pitchTargetDirty = false;
-                    
-                    int targetPitch = this->pitchTargetRaw * 128 + this->pitchBase;
-                    this->pitchTarget = targetPitch;
-                    
-                    int pitchDeltaVal = targetPitch - this->pitchCurrent;
-                    this->pitchDelta = pitchDeltaVal;
-                    this->pitchStep = (float)(pitchDeltaVal / this->smoothingFrames);
-                    this->pitchSmoothingFramesRemaining = this->smoothingFrames;
+                    this->pitchSmoothingFramesRemaining--;
+                    this->pitchCurrent += (long)this->pitchStep;
+                    this->curVowelValue = this->pitchCurrent * kPitchToFloatScale;
+                    this->setParameterValue(SingingVerticalSliderParameterId, this->curVowelValue);
+                }
+                if (this->vibratoSmoothingFramesRemaining > 0)
+                {
+                    this->vibratoSmoothingFramesRemaining--;
+                    this->vibratoCurrent = this->vibratoStep + this->vibratoCurrent;
+                    this->vibratoDepthCurrent = (this->vibratoCurrent - 36.0f) * 0.083333336f;
+                    this->setParameterValue(SingingHorizontalSliderParameterId, this->vibratoDepthCurrent);
+                    this->pitchTargetValue = this->vibratoCurrent;
+                }
+            }
+
+            if (this->isSinging)
+            {
+                this->idleAnimationSampleCounter = 0;
+                if (this->needsMonkAnimationRefresh)
+                {
+                    this->monkSprite = (this->curVowelValue * 24.0f) * (1.0f / 30.0f) + 0.2f;
+                    this->setParameterValue(MonkSpriteParameterId, this->monkSprite);
+                    this->needsMonkAnimationRefresh = false;
                 }
 
-                // Alternative Pitch Smoothing (likely from Pitch Bend)
-                if (this->pitchValueDirty == true)
+                // Portamento: glide the pitch towards its target
+                if (this->isGateActive)
                 {
-                    this->pitchValueDirty = false;
-                    int tempPitchTarget = static_cast<int>(this->pitchValue * 16384.0f);
-                    this->pitchTarget = tempPitchTarget;
-                    int tempPitchDelta = tempPitchTarget - this->pitchCurrent;
-                    this->pitchDelta = tempPitchDelta;
-                    this->pitchStep = (float)(tempPitchDelta / this->smoothingFrames);
-                    this->pitchSmoothingFramesRemaining = this->smoothingFrames;
-                }
-
-                // Vibrato Smoothing Trigger
-                if (this->vibratoDirty == true)
-                {
-                    this->vibratoDirty = false;
-                    float tempVowelVal = this->vibratoAmount * 12.0f + 36.0f;
-                    this->vibratoTarget = tempVowelVal;
-                    tempVowelVal = tempVowelVal - this->vibratoCurrent;
-                    this->vibratoDelta = tempVowelVal;
-                    this->vibratoStep = tempVowelVal / (float)this->smoothingFrames;
-                    this->vibratoSmoothingFramesRemaining = this->smoothingFrames;
-                }
-
-                // Apply Parameter Smoothing
-                if (this->smoothCounter <= this->smoothStep)
-                {
-                    this->smoothStep = 0;
-                    int pitchStepsRemaining = this->pitchSmoothingFramesRemaining;
-                    if (pitchStepsRemaining > 0) {
-                        --this->pitchSmoothingFramesRemaining;
-
-                        // Add the per‑sample pitch step (converted from float to integer)
-                        long step = static_cast<long>(this->pitchStep);
-                        this->pitchCurrent += step;
-
-                        // Convert the internal fixed‑point pitch back to a float (1.0 / 16384.0)
-                        float currentPitchFloat = static_cast<float>(this->pitchCurrent) * kPitchToFloatScale;
-                        this->curVowelValue = currentPitchFloat;
-
-                        // Notify host of parameter change (likely via VST's setParameterAutomated)
-                        this->setParameterValue(SingingVerticalSliderParameterId, currentPitchFloat);
-                    }
-
-                    int vibratoStepsRemaining = this->vibratoSmoothingFramesRemaining;
-                    if (0 < vibratoStepsRemaining)
+                    if (this->pitchTargetValue + 0.2f < this->formantMorphValue)
+                        this->formantMorphStep = -12.0f / ((this->portamentoTime + 0.01f) * this->pluginSampleRate);
+                    else if (this->pitchTargetValue - 0.2f > this->formantMorphValue)
+                        this->formantMorphStep = 12.0f / ((this->portamentoTime + 0.01f) * this->pluginSampleRate);
+                    else
                     {
-                        this->vibratoSmoothingFramesRemaining = vibratoStepsRemaining + -1;
-                        
-                        float nextVibratoValue = (float)this->vibratoStep + this->vibratoCurrent;
-                        this->vibratoCurrent = nextVibratoValue;
-                        
-                        float normalizedVibrato = (nextVibratoValue - 36.0f) * 0.083333336f;
-                        this->vibratoDepthCurrent = normalizedVibrato;
-                        this->setParameterValue(SingingHorizontalSliderParameterId, normalizedVibrato);
-                        this->pitchTargetValue = this->vibratoCurrent;
+                        this->formantMorphValue = this->pitchTargetValue;
+                        this->formantMorphStep = 0;
                     }
-                }
-
-                if (this->isSinging == false)
-                {
-                    // Idle Animation Logic
-                    this->formantTableNeedsUpdate = true;
-
-                    // Blink 1
-                    if (this->idleAnimationSampleCounter == this->startBlink1)
-                    {
-                        this->setParameterValue(MonkSpriteParameterId, closeEyes);
-                    }
-                    if (this->idleAnimationSampleCounter == this->stopBlink1)
-                    {
-                        this->setParameterValue(MonkSpriteParameterId, openEyes);
-                    }
-                    
-                    // Blink 2
-                    if (this->idleAnimationSampleCounter == this->startBlink2)
-                    {
-                        this->setParameterValue(MonkSpriteParameterId, closeEyes);
-                    }
-                    if (this->idleAnimationSampleCounter == this->stopBlink2)
-                    {
-                        this->setParameterValue(MonkSpriteParameterId, openEyes);
-                    }
-
-                    // After two blinks, we start the idle dance animation
-                    if ((this->idleSamplesPerFrame <= this->globalAnimationSampleCounter) && (this->startIdleAnimation <= this->idleAnimationSampleCounter))
-                    {
-                        if (23 < this->currentIdleFrame)
-                        {
-                            this->currentIdleFrame = 0;
-                        }
-                        
-                        this->globalAnimationSampleCounter = 0;
-                        float targetMonkSprite = this->monkIdleFrameTable[this->currentIdleFrame];
-                        this->monkSprite = targetMonkSprite;
-                        this->setParameterValue(MonkSpriteParameterId, targetMonkSprite);
-                        this->idleAnimationSampleCounter = this->startIdleAnimation;
-                        this->currentIdleFrame = this->currentIdleFrame + 1;
-                    }
+                    this->formantMorphValue = this->formantMorphValue + this->formantMorphStep;
                 }
                 else
                 {
-                    // Singing Animation Logic
-                    this->idleAnimationSampleCounter = 0;
-                    if (this->needsMonkAnimationRefresh != false)
-                    {
-                        float newMonkSprite = this->curVowelValue * 24.0f * 0.033333335f + 0.2f;
-                        this->monkSprite = newMonkSprite;
-                        this->setParameterValue(MonkSpriteParameterId, newMonkSprite);
-                        this->needsMonkAnimationRefresh = false;
-                    }
-
-                    // Portamento/Glide
-                    if (this->isGateActive == false)
-                    {
-                        this->formantMorphValue = this->pitchTargetValue;
-                    }
-                    else
-                    {
-                        // Calculate glide delta based on Portamento Time and Sample Rate
-                        if (this->formantMorphValue <= this->pitchTargetValue + 0.2)
-                        {
-                            if (this->pitchTargetValue - 0.2 <= this->formantMorphValue)
-                            {
-                                this->formantMorphValue = this->pitchTargetValue;
-                                this->formantMorphStep = 0;
-                            }
-                            else
-                            {
-                                this->formantMorphStep = (float)(12.0 / ((this->portamentoTime + 0.01) * this->pluginSampleRate));
-                            }
-                        }
-                        else
-                        {
-                            this->formantMorphStep = (float)(-12.0 / ((this->portamentoTime + 0.01) * this->pluginSampleRate));
-                        }
-                        this->formantMorphValue =
-                            this->formantMorphValue + this->formantMorphStep;
-                    }
-
-                    // LFO Calculation (Frequency Wobble)
-                    this->currentFormantMorphValue = this->formantMorphValue;
-                    int sineSize = this->sineTableSize;
-                    if (sineSize <= this->lfoPhaseAccumulator)
-                    {
-                        this->lfoPhaseAccumulator = this->lfoPhaseAccumulator - sineSize;
-                    }
-                    if (this->lfoReseedIntervalSamples <= this->sampleCounter)
-                    {
-                        this->sampleCounter = 0;
-                        float random = getRandomFloat();
-                        this->lfoPhaseWrapValue = random + random + 5.0f;
-                    }
-
-                    int lfoSineIndex = static_cast<long>(this->lfoPhaseAccumulator);
-                    this->lfoSampleValue = (this->lfoDepth + 0.2f) * (float)this->sineTable[lfoSineIndex];
-                    this->lfoPhaseAccumulator = ((this->lfoDepth * 0.2f + 1.0f) * this->lfoPhaseWrapValue) / this->lfoPhaseIncrement + this->lfoPhaseAccumulator;
-                    this->currentFormantMorphValue = this->lfoSampleValue + this->currentFormantMorphValue;
-                    
-                    // Fetch fundamental frequency for synthesis
-                    int freqTableIndex =  static_cast<long>(this->currentFormantMorphValue * -32.0f);
-                    float fundamentalFreq = this->frequencyTable[-freqTableIndex];
-                    this->frequencyValue = fundamentalFreq;
-                    
-                    int writeBoundary = static_cast<long>(this->pluginSampleRate / fundamentalFreq);
-                    this->frequencyIndex = writeBoundary;
-                    
-                    // Perform the actual synthesis if filter is dirty or boundary reached
-                    if ((writeBoundary <= this->excitationWriteIndex) || (this->formantTableNeedsUpdate != false))
-                    {
-                        if (this->formantTableNeedsUpdate != false)
-                        {
-                            synthesizeVowelBuffer(this->curVowelValue);
-                        }
-                        addSynthesisToExcitation(this->excitationWriteIndex);
-                        this->excitationWriteIndex = 0;
-                        this->formantTableNeedsUpdate = false;
-                    }
+                    this->formantMorphValue = this->pitchTargetValue;
                 }
 
-                // Increment per-sample counters
-                this->sampleCounter++;
-                this->idleAnimationSampleCounter++;
-                this->excitationWriteIndex++;
-                this->synthesisFrameCounter++;
-                sampleIdx ++;
-                frame--;
-                this->globalAnimationSampleCounter++;
-                this->smoothStep++;
+                // LFO (pitch wobble)
+                this->currentFormantMorphValue = this->formantMorphValue;
+                if (this->sineTableSize <= this->lfoPhaseAccumulator)
+                    this->lfoPhaseAccumulator = this->lfoPhaseAccumulator - this->sineTableSize;
+                if (this->sampleCounter >= this->lfoReseedIntervalSamples)
+                {
+                    this->sampleCounter = 0;
+                    float random = this->getRandomFloat();
+                    this->lfoPhaseWrapValue = random + random + 5.0f;
+                }
+                this->lfoSampleValue = (this->lfoDepth + 0.2f) * this->sineTable[(long)this->lfoPhaseAccumulator];
+                this->lfoPhaseAccumulator = (this->lfoDepth * 0.2f + 1.0f) * this->lfoPhaseWrapValue / this->lfoPhaseIncrement + this->lfoPhaseAccumulator;
+                this->currentFormantMorphValue = this->lfoSampleValue + this->currentFormantMorphValue;
 
-            } while (frame != 0);
+                // Fundamental frequency and period of the current note
+                this->frequencyValue = this->frequencyTable[-(long)(this->currentFormantMorphValue * -32.0f)];
+                this->frequencyIndex = (long)(this->pluginSampleRate / this->frequencyValue);
+
+                // Start the next glottal pulse once a full period has been written
+                if (this->excitationWriteIndex >= this->frequencyIndex || this->formantTableNeedsUpdate)
+                {
+                    if (this->formantTableNeedsUpdate)
+                        this->synthesizeVowelBuffer(this->curVowelValue);
+                    this->addSynthesisToExcitation(this->excitationWriteIndex);
+                    this->excitationWriteIndex = 0;
+                    this->formantTableNeedsUpdate = false;
+                }
+            }
+            else
+            {
+                // Idle: blink twice, then play the idle animation
+                this->formantTableNeedsUpdate = true;
+                if (this->idleAnimationSampleCounter == this->startBlink1)
+                    this->setParameterValue(MonkSpriteParameterId, closeEyes);
+                if (this->idleAnimationSampleCounter == this->stopBlink1)
+                    this->setParameterValue(MonkSpriteParameterId, openEyes);
+                if (this->idleAnimationSampleCounter == this->startBlink2)
+                    this->setParameterValue(MonkSpriteParameterId, closeEyes);
+                if (this->idleAnimationSampleCounter == this->stopBlink2)
+                    this->setParameterValue(MonkSpriteParameterId, openEyes);
+
+                if (this->globalAnimationSampleCounter >= this->idleSamplesPerFrame &&
+                    this->idleAnimationSampleCounter >= this->startIdleAnimation)
+                {
+                    if (this->currentIdleFrame >= 24)
+                        this->currentIdleFrame = 0;
+                    this->globalAnimationSampleCounter = 0;
+                    this->monkSprite = this->monkIdleFrameTable[this->currentIdleFrame];
+                    this->setParameterValue(MonkSpriteParameterId, this->monkSprite);
+                    this->idleAnimationSampleCounter = this->startIdleAnimation;
+                    this->currentIdleFrame++;
+                }
+            }
+
+            this->sampleCounter++;
+            this->idleAnimationSampleCounter++;
+            this->globalAnimationSampleCounter++;
+            this->excitationWriteIndex++;
+            this->synthesisFrameCounter++;
+            sampleIdx++;
+            this->smoothStep++;
         }
 
-        // Audio Rate Loop (Final Mix, Delay, and Output)
-        if (0 < sampleFrames)
+        // Audio rate: stereo delay and output
+        for (int i = 0; i < sampleFrames; i++)
         {
-            int frame = sampleFrames;
-            int i = 0; // ascending output sample index (was incorrectly using the descending 'frame' countdown)
-            float* outPtr = outRight;
-            do
-            {
-                // Circular Buffer Wrapping for Excitation and Delay
-                excitationBufferSize = this->excitationBufferSize;
-                int wrappedExcitReadIdx = this->excitationReadIndex;
-                while (excitationBufferSize <= wrappedExcitReadIdx)
-                {
-                    wrappedExcitReadIdx = this->excitationReadIndex - excitationBufferSize;
-                    this->excitationReadIndex = wrappedExcitReadIdx;
-                }
-                
-                delayBufferSize = this->delayBufferSize;
-                int wrappedDelayWriteIdx = this->delayWriteIndex;
-                while (delayBufferSize <= wrappedDelayWriteIdx)
-                {
-                    wrappedDelayWriteIdx = this->delayWriteIndex - delayBufferSize;
-                    this->delayWriteIndex = wrappedDelayWriteIdx;
-                }
-                
-                int wrappedDelayWriteIdxNeg = this->delayWriteIndex;
-                while (wrappedDelayWriteIdxNeg < 0)
-                {
-                    wrappedDelayWriteIdxNeg = this->delayWriteIndex + delayBufferSize;
-                    this->delayWriteIndex = wrappedDelayWriteIdxNeg;
-                }
-                
-                int wrappedDelayReadLIdx = this->delayReadIndexL;
-                while (delayBufferSize <= wrappedDelayReadLIdx)
-                {
-                    wrappedDelayReadLIdx = this->delayReadIndexL - delayBufferSize;
-                    this->delayReadIndexL = wrappedDelayReadLIdx;
-                }
-                
-                int wrappedDelayReadLIdxNeg = this->delayReadIndexL;
-                while (wrappedDelayReadLIdxNeg < 0)
-                {
-                    wrappedDelayReadLIdxNeg = this->delayReadIndexL + delayBufferSize;
-                    this->delayReadIndexL = wrappedDelayReadLIdxNeg;
-                }
-                
-                int wrappedDelayReadRIdx = this->delayReadIndexR;
-                while (delayBufferSize <= wrappedDelayReadRIdx)
-                {
-                    wrappedDelayReadRIdx = this->delayReadIndexR - delayBufferSize;
-                    this->delayReadIndexR = wrappedDelayReadRIdx;
-                }
-                
-                int wrappedDelayReadRIdxNeg = this->delayReadIndexR;
-                while (wrappedDelayReadRIdxNeg < 0)
-                {
-                    wrappedDelayReadRIdxNeg = this->delayReadIndexR + delayBufferSize;
-                    this->delayReadIndexR = wrappedDelayReadRIdxNeg;
-                }
+            while (this->excitationReadIndex >= this->excitationBufferSize)
+                this->excitationReadIndex -= this->excitationBufferSize;
 
-                // Read current excitation value and clear it (prep for next accumulation)
-                float excitation = this->excitationBuffer[this->excitationReadIndex];
+            int delaySize = this->delayBufferSize;
+            while (this->delayWriteIndex >= delaySize)
+                this->delayWriteIndex -= delaySize;
+            while (this->delayWriteIndex < 0)
+                this->delayWriteIndex += delaySize;
+            while (this->delayReadIndexL >= delaySize)
+                this->delayReadIndexL -= delaySize;
+            while (this->delayReadIndexL < 0)
+                this->delayReadIndexL += delaySize;
+            while (this->delayReadIndexR >= delaySize)
+                this->delayReadIndexR -= delaySize;
+            while (this->delayReadIndexR < 0)
+                this->delayReadIndexR += delaySize;
 
-                // Stereo Delay Line (Feedback Loop)
-                float* stereoDelayLBuffer = this->stereoDelayLBuffer;
-                stereoDelayLBuffer[this->delayWriteIndex] = (stereoDelayLBuffer[this->delayReadIndexL] * this->delayFeedback + excitation) * this->delay;
-                
-                float* stereoDelayRBuffer = this->stereoDelayRBuffer;
-                stereoDelayRBuffer[this->delayWriteIndex] = (stereoDelayRBuffer[this->delayReadIndexR] * this->delayFeedback + excitation) * this->delay;
-                
-                this->delayWriteIndex = this->delayWriteIndex + 1;
-                
-                // Final Output Mix & Volume Normalization
-                // Volume is adjusted slightly depending on the mouth position/vowel.
-                float morphScale = (this->formantMorphValue * -0.013888889f + 2.0f) * this->outputGain;
-                
-                // Left Channel: Dry Excitation + Delay Line L
-                outLeft[i] = morphScale * (excitation + this->stereoDelayLBuffer[this->delayReadIndexL]);
-                
-                // Right Channel: Dry Excitation + Delay Line R
-                outRight[i] = morphScale * (excitation + this->stereoDelayRBuffer[this->delayReadIndexR]);
-                
-                this->excitationBuffer[this->excitationReadIndex] = 0.0f;
-                this->excitationReadIndex++;
-                
-                outPtr++;
-                i++;
-                frame--;
-            } while (frame != 0);
+            this->stereoDelayLBuffer[this->delayWriteIndex] = (this->stereoDelayLBuffer[this->delayReadIndexL] * this->delayFeedback + this->excitationBuffer[this->excitationReadIndex]) * this->delay;
+            this->stereoDelayRBuffer[this->delayWriteIndex] = (this->stereoDelayRBuffer[this->delayReadIndexR] * this->delayFeedback + this->excitationBuffer[this->excitationReadIndex]) * this->delay;
+            this->delayWriteIndex++;
+
+            // The output gain depends slightly on the pitch
+            outLeft[i] = (this->excitationBuffer[this->excitationReadIndex] + this->stereoDelayLBuffer[this->delayReadIndexL]) * (((float)(this->formantMorphValue * -0.013888889f) + 2.0f) * this->outputGain);
+            this->delayReadIndexL++;
+            outRight[i] = (this->excitationBuffer[this->excitationReadIndex] + this->stereoDelayRBuffer[this->delayReadIndexR]) * (((float)(this->formantMorphValue * -0.013888889f) + 2.0f) * this->outputGain);
+            this->delayReadIndexR++;
+
+            this->excitationBuffer[this->excitationReadIndex] = 0;
+            this->excitationReadIndex++;
         }
     }
 
