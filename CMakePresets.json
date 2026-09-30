@@ -38,7 +38,8 @@
       "binaryDir": "${sourceDir}/build/vc6",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "RelWithDebInfo",
-        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
+        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
+        "DELAYLAMA_ENABLE_LOGGING": "OFF"
       },
       "environment": {
         "PATH": "$env{MSVC600_PATH}/VC98/Bin;$penv{PATH}"
