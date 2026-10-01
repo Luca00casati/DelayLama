@@ -37,7 +37,7 @@ Most member names in the DelayLamaAudio class have been checked against what the
 - [x] Fully annotate all functions in the original binary using Ghidra.
 - [x] Turn the Ghidra findings and functions into actual C++ code.
 - [x] Get a fully working 32-bit build. (Its audio matches the original to within float rounding, checked by the unit tests, and its interface is pixel-identical.)
-- [ ] Clean up source code to improve the maintainability and readability of the codebase, without changing the functionality.
+- [x] Clean up source code to improve the maintainability and readability of the codebase, without changing the functionality. (Names checked against the code and the manual, decompiler leftovers removed, VSTGUI / VST SDK names used; verified by an unchanged VC6 match and the unit tests.)
 - [x] Hopefully get a 64-bit build of Delay Lama working. (Builds and matches the original under Wine; testing in real DAWs welcome.)
 - [ ] And lastly, if at all possible, get the project to compile to a fully byte accurate binary that 100% matches the original dll. (I've already added [Reccmp](https://github.com/isledecomp/reccmp) to help showing the current progress)
 
