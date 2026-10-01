@@ -44,9 +44,11 @@ namespace Core {
         log("Host version checked\n");
 
         DelayLamaPlugin* delayLama = new DelayLamaPlugin(hostCallback);
-    
+        if (!delayLama)
+            return NULL;
+
         if (g_bInitFailed) {
-            delayLama->~DelayLamaPlugin();
+            delete delayLama;
             return NULL;
         }
 

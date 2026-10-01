@@ -877,17 +877,12 @@ namespace Core {
 
     // FUNCTION: DELAYLAMA 0x10002c00
     void DelayLamaAudio::getParameterUnitLabel(int32_t parameterId, char* label) {
-        const char* unitLabel = nullptr;
-
         switch (parameterId) {
-            case 0: unitLabel = " Hours  ";   break;
-            case 1: unitLabel = " Vowel  ";   break;
-            case 2: unitLabel = "   dB   ";        break;
-            case 3: unitLabel = "   cm   ";        break;
-            default: return;
+            case 0: strcpy(label, " Hours  "); break;
+            case 1: strcpy(label, " Vowel  "); break;
+            case 2: strcpy(label, "   dB   "); break;
+            case 3: strcpy(label, "   cm   "); break;
         }
-
-        strcpy(label, unitLabel);
     }
 
     // FUNCTION: DELAYLAMA 0x10002c90
@@ -923,22 +918,28 @@ namespace Core {
 
     // FUNCTION: DELAYLAMA 0x10002fd0
     float DelayLamaAudio::getParameterValue(int32_t parameter) {
+        float value = 0;
         switch(parameter) {
             case LeftVoiceKnobParameterId:
-                return this->portamentoTime;
+                value = this->portamentoTime;
+                break;
             case SingingVerticalSliderParameterId:
-                return this->curVowelValue;
+                value = this->curVowelValue;
+                break;
             case ReverbSliderParameterId:
-                return this->delay;
+                value = this->delay;
+                break;
             case RightGlideKnobParameterId:
-                return this->headSize;
-            case SingingHorizontalSliderParameterId:
-                return this->vibratoDepthCurrent;
+                value = this->headSize;
+                break;
             case MonkSpriteParameterId:
-                return this->monkSprite;
-            default:
-                return 0.0;
+                value = this->monkSprite;
+                break;
+            case SingingHorizontalSliderParameterId:
+                value = this->vibratoDepthCurrent;
+                break;
         }
+        return value;
     }
 
     // FUNCTION: DELAYLAMA 0x10003050
@@ -990,11 +991,16 @@ namespace Core {
 
     // FUNCTION: DELAYLAMA 0x100031a0
     int32_t DelayLamaAudio::pluginSupports(char* target) {
-        if (strcmp(target, "receiveDamEvents") == 0 || strcmp(target, "receiveVstEvents") == 0) return 1;
-        if (strcmp(target, "receiveDamMidiEvent") == 0 || strcmp(target, "receiveVstMidiEvent") == 0) return 1;
-        if (strcmp(target, "sendDamMidiEvent") == 0 || strcmp(target, "sendVstMidiEvent") == 0) return 1;
-        if (strcmp(target, "sendDamEvents") == 0 || strcmp(target, "sendVstEvents") == 0) return 1;
-        return 0;
+        // 1: yes, -1: no (VST canDo)
+        if (!strcmp(target, "receiveVstEvents"))
+            return 1;
+        if (!strcmp(target, "receiveVstMidiEvent"))
+            return 1;
+        if (!strcmp(target, "sendVstMidiEvent"))
+            return 1;
+        if (!strcmp(target, "sendVstEvents"))
+            return 1;
+        return -1;
     }
 
     // FUNCTION: DELAYLAMA 0x10004870
