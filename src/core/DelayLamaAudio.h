@@ -29,7 +29,7 @@ namespace Core {
             char unusedBytes00[2]; // 0xd6
             Preset* presets;// 0xd8
 
-             // Midi Section, I think I might have misidentified some MidiEvents wrong or something here. 
+            // MIDI: incoming events queued per sample, and the event sent to the host
             int32_t midiEventReadIndex; // 0xdc
             DamSDK::Api::MidiEvent midiQueue[1024]; // 0xe0
             DamSDK::Api::DamMidiEvent midiEvent; // 0x40e0
@@ -158,7 +158,7 @@ namespace Core {
             virtual float getParameterValue(int32_t parameterId) override;
             virtual bool getOutputBusProperties(int32_t index, char* properties) override;
             virtual bool getPresetNameByIndex(int32_t category, int32_t index, char* outText) override;
-            virtual bool copyPreset(int32_t param_1) override;
+            virtual bool copyPreset(int32_t destination) override;
             virtual bool getProductName(char* outText) override;
             virtual int32_t pluginSupports(char* target) override;
             virtual void setSampleRate(float sampleRate) override;

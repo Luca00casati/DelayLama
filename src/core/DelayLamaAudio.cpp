@@ -138,6 +138,12 @@ namespace Core {
 
     const int kPitchBendCenter = 8192; 
     const int kVoiceBufferSize = 10240;
+// MIDI status bytes
+#define kMidiNoteOff       0x80
+#define kMidiNoteOn        0x90
+#define kMidiControlChange 0xB0
+#define kMidiPitchBend     0xE0
+
 #define kGrainSeconds ((double)(0.02))  // grain length: 20 milliseconds
 #define kPi ((double)(3.141592654f))  // pi
 #define kPi2 ((double)(6.283185307f))  // 2.0 * pi
@@ -457,7 +463,7 @@ namespace Core {
         this->lfoPhaseIncrement = this->pluginSampleRate / (float)this->sineTableSize;
 
         // Vowel timing/frame math
-        this->lfoReseedIntervalSamples = (int)(this->sampleRate * 104.0 * 0.001); // Effectively sampleRate * 0.104
+        this->lfoReseedIntervalSamples = (int)(this->sampleRate * 104.0 * 0.001); // 104 ms
         this->needsMonkAnimationRefresh = true;
         this->globalAnimationSampleCounter = 0;
         this->idleAnimationSampleCounter = 0;
@@ -485,8 +491,8 @@ namespace Core {
         this->delayFeedback = 0.5;
 
         // Smoothing configuration
-        this->totalSmoothingFrames = (int)(this->sampleRate * 0.001 * 100.0); // Effectively sampleRate * 0.1
-        this->smoothCounter = (int)(this->sampleRate * 0.0099999998);         // Effectively sampleRate * 0.01
+        this->totalSmoothingFrames = (int)(this->sampleRate * 0.001 * 100.0); // 100 ms
+        this->smoothCounter = (int)(this->sampleRate * 0.0099999998);         // 10 ms
         this->smoothingFrames = this->totalSmoothingFrames / this->smoothCounter;
 
         this->vowelCurrent = kPitchBendCenter; // Assuming this is 8192 (0x2000) based on '00 20 00 00'
@@ -523,7 +529,7 @@ namespace Core {
             this->dispatchMidiEvents(sampleIdx, sampleFrames);
 
             // MIDI pitch bend controls the vowel
-            if (this->vowelBendDirty == true)
+            if (this->vowelBendDirty == true)  // (== true: compiles like the original)
             {
                 this->vowelBendDirty = false;
                 this->vowelTarget = this->vowelBendMsb * 128 + this->vowelBendLsb;
@@ -533,7 +539,7 @@ namespace Core {
             }
 
             // Vowel from the singing pad
-            if (this->padVowelDirty == true)
+            if (this->padVowelDirty == true)  // (== true: compiles like the original)
             {
                 this->padVowelDirty = false;
                 this->vowelTarget = (long)(this->padVowel * kPitchScaleFactor);
@@ -543,7 +549,7 @@ namespace Core {
             }
 
             // Pitch from the singing pad: 36..48 (one octave)
-            if (this->padPitchDirty == true)
+            if (this->padPitchDirty == true)  // (== true: compiles like the original)
             {
                 this->padPitchDirty = false;
                 this->padPitchTarget = this->padPitch * 12.0f + 36.0f;
@@ -763,7 +769,7 @@ namespace Core {
                 if (value != 0.0f)
                 {
                     this->isSinging = true;
-                    sendMidiToHost(0x90, 40, 64); // Note On
+                    sendMidiToHost(kMidiNoteOn, 40, 64);
                 }
                 else
                 {
@@ -775,7 +781,7 @@ namespace Core {
                         this->currentIdleFrame = 0;
                         this->needsMonkAnimationRefresh = true;
 
-                        sendMidiToHost(0x80, 40, 64); // Note Off
+                        sendMidiToHost(kMidiNoteOff, 40, 64);
                     }
                 }
                 break;
@@ -788,7 +794,7 @@ namespace Core {
                 const int midiValue = static_cast<int>(value * 127.0f);
                 this->midiDataValue = midiValue;
 
-                sendMidiToHost(0xB0, 0x0B, midiValue);
+                sendMidiToHost(kMidiControlChange, 11, midiValue);
                 break;
             }
             case PadVowelParameterId: // Vowel from the pad, sent to the host as pitch bend
@@ -799,7 +805,7 @@ namespace Core {
                 const int midiValue = static_cast<int>(value * 127.0f);
                 this->midiDataValue = midiValue;
 
-                sendMidiToHost(0xE0, 0, midiValue);
+                sendMidiToHost(kMidiPitchBend, 0, midiValue);
                 break;
             }
             default:
@@ -1083,21 +1089,21 @@ namespace Core {
                     break;
                 status &= 0xf0;
 
-                if (status == 0x90 || status == 0x80) {
+                if (status == kMidiNoteOn || status == kMidiNoteOff) {
                     // Note on / note off
                     int note = this->midiQueue[this->midiEventReadIndex].data1 & 0x7f;
                     int velocity = this->midiQueue[this->midiEventReadIndex].data2 & 0x7f;
-                    if (status == 0x80)
+                    if (status == kMidiNoteOff)
                         velocity = 0;
                     this->handleNoteEvent(note, velocity);
                 }
-                else if (status == 0xb0) {
+                else if (status == kMidiControlChange) {
                     // Control change
                     this->currentMidiEventData1 = this->midiQueue[this->midiEventReadIndex].data1 & 0x7f;
                     this->currentMidiEventData2 = this->midiQueue[this->midiEventReadIndex].data2 & 0x7f;
                     this->handleControlChange(this->currentMidiEventData1, this->currentMidiEventData2);
                 }
-                else if (status == 0xe0) {
+                else if (status == kMidiPitchBend) {
                     // Pitch bend (controls the vowel)
                     if (sampleIdx != 0) {
                         this->vowelBendLsb = this->midiQueue[this->midiEventReadIndex].data1 & 0x7f;
@@ -1300,7 +1306,7 @@ namespace Core {
             this->currentIdleFrame = 0;
             this->needsMonkAnimationRefresh = true;
         }
-        if (this->noteStack[1] != 0 && this->isLegato == false)
+        if (this->noteStack[1] != 0 && !this->isLegato)
             this->isLegato = true;
     }
 

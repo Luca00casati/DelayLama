@@ -50,7 +50,7 @@ namespace Controls {
         if (!this->isEnabled)
             return;
         int buttons = drawingContext->getMouseButtons();
-        if (!(buttons & 1))
+        if (!(buttons & DamSDK::Gui::kLButton))
             return;
 
         this->value = !this->value;

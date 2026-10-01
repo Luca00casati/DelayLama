@@ -9,7 +9,6 @@ namespace Controls {
     // VTABLE: DELAYLAMA 0x1000c154
     class SplashScreen : public DamSDK::Gui::Controls::Control {
         public:
-            // Member variables from original decompilation
             RECT destRect;
             RECT keepRect;  // the control's own rect while the splash is shown
             POINT srcPoint;
