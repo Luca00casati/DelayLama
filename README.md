@@ -54,10 +54,15 @@ DamSDK is a custom, VST-compatible plugin interface I am developing specifically
 ```
 DelayLama/
 ├── src/                    # Source code for the recreation
+│   ├── core/               # The synthesizer (DelayLamaAudio), plugin entry point, presets
+│   ├── gui/                # The editor and Delay Lama's own controls (Monk, SplashScreen, ...)
+│   └── damsdk/             # DamSDK submodule: VST-compatible plugin interface and VSTGUI-style GUI
+├── tests/                  # Unit tests (GoogleTest) and fixtures recorded from the original plugin
+├── tools/                  # Reference audio renderer and the function map generator
 ├── docs/                   # Reverse engineering analysis and documentation
-│   ├── analysis.md         # Overall project analysis
-│   ├── class-analysis.md   # Class structure analysis
-│   └── function_map.json   # Map of all functions in the binary, categorized by class and namespace
+│   ├── analysis.md         # History, class hierarchy, synthesis engine, MIDI, resources
+│   ├── class-analysis.md   # Every class, its VST SDK / VSTGUI equivalent and confidence
+│   └── function_map.json   # Address of every function in the original DLL, by class
 ├── original/               # Original plugin files for reference
 │   ├── decomp/             # Contains unprocessed headers directly exported from Ghidra. 
 │   └── docs/               # Original documentation, manual, screenshots from AudioNerdz
@@ -65,8 +70,10 @@ DelayLama/
 ```
 
 ### Prerequisites
-- CMake
-- Other than that not yet determined
+- CMake 3.25 or newer (for the presets)
+- Visual Studio 2022 or 2026 (for the 32 and 64-bit builds), or Visual C++ 6.0 for the build that is compared with the original binary
+- Python 3 with `pefile` (to extract the interface bitmaps)
+- A copy of the original `Delay Lama.dll` (for the bitmaps)
 
 ### Build Instructions
 The interface bitmaps are not in the repository; extract them from your copy of the original plugin first:
@@ -86,6 +93,18 @@ cmake --preset vs2022-x64
 cmake --build --preset vs2022-x64 --config Release
 ```
 The plugin is written to `build/bin/vs2022/<x32|x64>/Release/DelayLama.dll`. The 64-bit build produces the same audio as the original (checked by the unit tests) and draws the same interface.
+
+### Tests
+The unit tests check the recreation against data recorded from the original plugin: the synthesizer's state after initialization, and its audio output for a scripted performance (notes, glide, vibrato, pitch bend, parameter changes), sample by sample.
+```sh
+cmake --preset vs2022
+cmake --build --preset vs2022 --target DelayLamaTests
+ctest --test-dir build/vs2022 --output-on-failure
+```
+CI runs them for both 32 and 64-bit. `tools/render_reference.cpp` re-records the reference audio from the original DLL if the scenario changes.
+
+### Matching the Original Binary
+The `vc6` preset builds with Visual C++ 6.0 (the compiler the original was built with), and [reccmp](https://github.com/isledecomp/reccmp) compares every function with the original (`GetProgress.bat`). The results are published on the [progress page](https://jor02.github.io/DelayLama/progress.html).
 
 ## Documentation
 

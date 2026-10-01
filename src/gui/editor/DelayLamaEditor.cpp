@@ -51,10 +51,10 @@ namespace Gui{
         int parameterId = control->parameterId;
         switch (parameterId)
         {
-            case LeftVoiceKnobParameterId:
+            case GlideKnobParameterId:
             case SingingVerticalSliderParameterId:
-            case ReverbSliderParameterId:
-            case RightGlideKnobParameterId:
+            case DelaySliderParameterId:
+            case VoiceKnobParameterId:
             case SingingHorizontalSliderParameterId:
             case MonkSpriteParameterId:
                 // Also tells the host, so it can record the change as automation
@@ -182,21 +182,21 @@ namespace Gui{
 
         // Knobs: 60 frames stacked vertically
         setRect(&size, 21, 448, 21 + this->leftKnobBitmap->width, 448 + this->leftKnobBitmap->height / 60);
-        this->leftKnob = new DamSDK::Gui::Controls::Knob(&size, this, LeftVoiceKnobParameterId, 60, 50, this->leftKnobBitmap, &point);
-        this->leftKnob->setValue(this->mainPlugin->getParameterValue(LeftVoiceKnobParameterId));
+        this->leftKnob = new DamSDK::Gui::Controls::Knob(&size, this, GlideKnobParameterId, 60, 50, this->leftKnobBitmap, &point);
+        this->leftKnob->setValue(this->mainPlugin->getParameterValue(GlideKnobParameterId));
         this->window->registerControl(this->leftKnob);
 
         setRect(&size, 293, 447, 293 + this->rightKnobBitmap->width, 447 + this->rightKnobBitmap->height / 60);
-        this->rightKnob = new DamSDK::Gui::Controls::Knob(&size, this, RightGlideKnobParameterId, 60, 50, this->rightKnobBitmap, &point);
-        this->rightKnob->setValue(this->mainPlugin->getParameterValue(RightGlideKnobParameterId));
+        this->rightKnob = new DamSDK::Gui::Controls::Knob(&size, this, VoiceKnobParameterId, 60, 50, this->rightKnobBitmap, &point);
+        this->rightKnob->setValue(this->mainPlugin->getParameterValue(VoiceKnobParameterId));
         this->window->registerControl(this->rightKnob);
 
         // Delay slider
         setRect(&size, 104, 479, 256, 504);
         offset.x = 104;
         offset.y = 479;
-        this->reverbSlider = new DamSDK::Gui::Controls::HorizontalSlider(&size, this, ReverbSliderParameterId, 104, 255 - this->reverbHandleBitmap->width, this->reverbHandleBitmap, this->backgroundBitmap, &offset, 8);
-        this->reverbSlider->setValue(this->mainPlugin->getParameterValue(ReverbSliderParameterId));
+        this->reverbSlider = new DamSDK::Gui::Controls::HorizontalSlider(&size, this, DelaySliderParameterId, 104, 255 - this->reverbHandleBitmap->width, this->reverbHandleBitmap, this->backgroundBitmap, &offset, 8);
+        this->reverbSlider->setValue(this->mainPlugin->getParameterValue(DelaySliderParameterId));
         this->reverbSlider->setDefaultValue(0.75f);
         this->window->registerControl(this->reverbSlider);
 
@@ -255,13 +255,13 @@ namespace Gui{
 
         switch (parameterIndex)
         {
-            case LeftVoiceKnobParameterId:
+            case GlideKnobParameterId:
                 if (this->leftKnob != nullptr)
-                    this->leftKnob->setValue(this->mainPlugin->getParameterValue(LeftVoiceKnobParameterId));
+                    this->leftKnob->setValue(this->mainPlugin->getParameterValue(GlideKnobParameterId));
                 break;
-            case RightGlideKnobParameterId:
+            case VoiceKnobParameterId:
                 if (this->rightKnob != nullptr)
-                    this->rightKnob->setValue(this->mainPlugin->getParameterValue(RightGlideKnobParameterId));
+                    this->rightKnob->setValue(this->mainPlugin->getParameterValue(VoiceKnobParameterId));
                 break;
             case SingingVerticalSliderParameterId:
                 if (this->singingVerticalSlider != nullptr)
@@ -271,9 +271,9 @@ namespace Gui{
                 if (this->monk != nullptr)
                     this->monk->setValue(this->mainPlugin->getParameterValue(MonkSpriteParameterId));
                 break;
-            case ReverbSliderParameterId:
+            case DelaySliderParameterId:
                 if (this->reverbSlider != nullptr)
-                    this->reverbSlider->setValue(this->mainPlugin->getParameterValue(ReverbSliderParameterId));
+                    this->reverbSlider->setValue(this->mainPlugin->getParameterValue(DelaySliderParameterId));
                 break;
             case SingingHorizontalSliderParameterId:
                 if (this->singingHorizontalSlider != nullptr)

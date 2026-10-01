@@ -138,7 +138,7 @@ namespace Core {
 
     const int kPitchBendCenter = 8192; 
     const int kVoiceBufferSize = 10240;
-#define kDelayTimeSeconds ((double)(0.02))  // 20 milliseconds
+#define kGrainSeconds ((double)(0.02))  // grain length: 20 milliseconds
 #define kPi ((double)(3.141592654f))  // pi
 #define kPi2 ((double)(6.283185307f))  // 2.0 * pi
 #define kPi50 ((double)(157.0796327))  // 50.0 * pi
@@ -214,7 +214,7 @@ namespace Core {
         this->prevSampleRate = this->pluginSampleRate;
 
         // Allocate and Initialize Synthesis Buffers
-        this->numSamples = static_cast<long>(this->pluginSampleRate * kDelayTimeSeconds);
+        this->numSamples = static_cast<long>(this->pluginSampleRate * kGrainSeconds);
         if (this->grainBuffer == nullptr) {
             this->grainBuffer = new float[this->numSamples];
         }
@@ -705,7 +705,7 @@ namespace Core {
     {
         switch (parameterId)
         {
-            case LeftVoiceKnobParameterId: // Portamento Time
+            case GlideKnobParameterId: // Portamento Time
             {
                 this->portamentoTime = value;
                 break;
@@ -743,12 +743,12 @@ namespace Core {
                 }
                 break;
             }
-            case ReverbSliderParameterId: // Delay
+            case DelaySliderParameterId: // Delay
             {
                 this->delay = value;
                 break;
             }
-            case RightGlideKnobParameterId: // Head Size
+            case VoiceKnobParameterId: // Head Size
             {
                 this->headSize = value;
 
@@ -860,9 +860,9 @@ namespace Core {
         this->delay = presets[currentProgram].delay;
         this->headSize = presets[currentProgram].headSize;
 
-        this->setParameterValue(LeftVoiceKnobParameterId, portTime);
-        this->setParameterValue(ReverbSliderParameterId, this->delay);
-        this->setParameterValue(RightGlideKnobParameterId, this->headSize);
+        this->setParameterValue(GlideKnobParameterId, portTime);
+        this->setParameterValue(DelaySliderParameterId, this->delay);
+        this->setParameterValue(VoiceKnobParameterId, this->headSize);
     }
 
     // FUNCTION: DELAYLAMA 0x10002b80
@@ -889,16 +889,16 @@ namespace Core {
     void DelayLamaAudio::getParameterValueString(int32_t parameterId, char* outText) {
         *outText = '\0';
         switch(parameterId) {
-        case LeftVoiceKnobParameterId:
+        case GlideKnobParameterId:
           this->formatFloatToString(this->portamentoTime * 1000.0f, outText);
           return;
         case SingingVerticalSliderParameterId:
           this->formatFloatToString(this->curVowelValue, outText);
           return;
-        case ReverbSliderParameterId:
+        case DelaySliderParameterId:
             this->formatFloatAsDecibelString(this->delay, outText);
             return;
-        case RightGlideKnobParameterId:
+        case VoiceKnobParameterId:
             this->formatFloatToString(this->headSize * 30.0f, outText);
         }
     }
@@ -920,16 +920,16 @@ namespace Core {
     float DelayLamaAudio::getParameterValue(int32_t parameter) {
         float value = 0;
         switch(parameter) {
-            case LeftVoiceKnobParameterId:
+            case GlideKnobParameterId:
                 value = this->portamentoTime;
                 break;
             case SingingVerticalSliderParameterId:
                 value = this->curVowelValue;
                 break;
-            case ReverbSliderParameterId:
+            case DelaySliderParameterId:
                 value = this->delay;
                 break;
-            case RightGlideKnobParameterId:
+            case VoiceKnobParameterId:
                 value = this->headSize;
                 break;
             case MonkSpriteParameterId:
@@ -1317,7 +1317,7 @@ namespace Core {
         if (midiData1 == 5) {
           float portamento = (float)midiData2 * 0.007874016f;
           this->portamentoTime = portamento;
-          this->setParameterValue(LeftVoiceKnobParameterId,portamento);
+          this->setParameterValue(GlideKnobParameterId,portamento);
           return;
         }
 
@@ -1338,7 +1338,7 @@ namespace Core {
         if (midiData1 == 0xc) {
           float delay = (float)midiData2 * 0.007874016f;
           this->delay = delay;
-          this->setParameterValue(ReverbSliderParameterId, delay);
+          this->setParameterValue(DelaySliderParameterId, delay);
           return;
         }
 
@@ -1346,7 +1346,7 @@ namespace Core {
         if (midiData1 == 0xd) {
           float headSize = (float)midiData2 * 0.007874016f;
           this->headSize = headSize;
-          this->setParameterValue(RightGlideKnobParameterId, headSize);
+          this->setParameterValue(VoiceKnobParameterId, headSize);
         }
         
     }
