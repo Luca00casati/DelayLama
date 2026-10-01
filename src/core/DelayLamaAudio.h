@@ -46,16 +46,16 @@ namespace Core {
             int bendQueueCount; // 0x612c
             int bendQueueSpacing; // 0x6130
             int bendQueueIndex; // 0x6134
-            int synthesisFrameCounter; // 0x6138
-            float vowelTargetValue; // 0x613c
+            int synthesisFrameCounter; // 0x6138 (written but never read)
+            float vowelTargetValue; // 0x613c (written but never read)
             bool vowelBendDirty; // 0x6140
-            bool isGlideActive; // 0x6141
+            bool isGlideActive; // 0x6141 (written but never read)
             bool vowelBufferNeedsUpdate; // 0x6142
             bool unusedBool; // 0x6143
             float notePitch; // 0x6144
             float glideStep; // 0x6148
             float glidePitch; // 0x614c
-            bool isGateActive; // 0x6150
+            bool isLegato; // 0x6150
             char unusedBytes04[3]; // 0x6151
             float voicePitch; // 0x6154
             float lfoPhaseAccumulator; // 0x6158
@@ -120,20 +120,20 @@ namespace Core {
             int delayWriteIndex; // 0x6498
             int delayReadIndexL; // 0x649c
             int delayReadIndexR; // 0x64a0
-            float* synthesisBuffer; // 0x64a4
+            float* grainBuffer; // 0x64a4
             int numSamples; // 0x64a8
-            float* excitationBuffer; // 0x64ac
-            int excitationBufferSize; // 0x64b0
-            int excitationReadIndex; // 0x64b4
+            float* voiceBuffer; // 0x64ac
+            int voiceBufferSize; // 0x64b0
+            int voiceReadIndex; // 0x64b4
             float* sineTable; // 0x64b8
             int sineTableSize; // 0x64bc
             float* decayTable; // 0x64c0
             int decayTableSize; // 0x64c4
-            float* vocalEnvelope; // 0x64c8
-            float* glottalSource; // 0x64cc
-            int glottalTableSize; // 0x64d0
-            float glottalPhaseInc; // 0x64d4
-            float* harmonicBuffer; // 0x64d8
+            float* grainWindow; // 0x64c8
+            float* formantWave; // 0x64cc
+            int formantWaveSize; // 0x64d0
+            float formantWaveStepsPerHz; // 0x64d4
+            float* fixedFormantBuffer; // 0x64d8
             float* frequencyTable; // 0x64dc
             int frequencyTableSize; // 0x64e0
             float* formantTable1; // 0x64e4
@@ -168,7 +168,7 @@ namespace Core {
             void buildFormantCurveTable(int32_t* controlPoints, float* outSamples);
             virtual void invokeAudioProcess(float* * inputs, float* * outputs, int32_t sampleFrames) override;
             void dispatchMidiEvents(int sampleIdx, int sampleFrame);
-            void addSynthesisToExcitation(int offsetIncrement);
+            void addGrainToVoice(int offsetIncrement);
             void synthesizeVowelBuffer(float vowelX);
             virtual int32_t processEvents(void* events) override;
             void handleNoteEvent(int midiData1, int midiData2);

@@ -103,7 +103,7 @@ TEST_F(DelayLamaAudioInitTest, Initialize_Scalars_Floats) {
         { "pluginSampleRate",         &DelayLama::Core::DelayLamaAudio::pluginSampleRate         },
         { "prevSampleRate",           &DelayLama::Core::DelayLamaAudio::prevSampleRate           },
         { "delayFeedback",            &DelayLama::Core::DelayLamaAudio::delayFeedback            },
-        { "glottalPhaseInc",          &DelayLama::Core::DelayLamaAudio::glottalPhaseInc          },
+        { "formantWaveStepsPerHz",          &DelayLama::Core::DelayLamaAudio::formantWaveStepsPerHz          },
         { "rngScale",                 &DelayLama::Core::DelayLamaAudio::rngScale                 },
     };
 
@@ -147,11 +147,11 @@ TEST_F(DelayLamaAudioInitTest, Initialize_Scalars_Ints) {
         { "delayReadIndexL",                 &DelayLama::Core::DelayLamaAudio::delayReadIndexL                 },
         { "delayReadIndexR",                 &DelayLama::Core::DelayLamaAudio::delayReadIndexR                 },
         { "numSamples",                      &DelayLama::Core::DelayLamaAudio::numSamples                      },
-        { "excitationBufferSize",            &DelayLama::Core::DelayLamaAudio::excitationBufferSize            },
-        { "excitationReadIndex",             &DelayLama::Core::DelayLamaAudio::excitationReadIndex             },
+        { "voiceBufferSize",            &DelayLama::Core::DelayLamaAudio::voiceBufferSize            },
+        { "voiceReadIndex",             &DelayLama::Core::DelayLamaAudio::voiceReadIndex             },
         { "sineTableSize",                   &DelayLama::Core::DelayLamaAudio::sineTableSize                   },
         { "decayTableSize",                &DelayLama::Core::DelayLamaAudio::decayTableSize                },
-        { "glottalTableSize",                &DelayLama::Core::DelayLamaAudio::glottalTableSize                },
+        { "formantWaveSize",                &DelayLama::Core::DelayLamaAudio::formantWaveSize                },
         { "frequencyTableSize",              &DelayLama::Core::DelayLamaAudio::frequencyTableSize              },
     };
 
@@ -170,7 +170,7 @@ TEST_F(DelayLamaAudioInitTest, Initialize_Scalars_Bools) {
         { "vowelBendDirty",         &DelayLama::Core::DelayLamaAudio::vowelBendDirty         },
         { "isGlideActive",            &DelayLama::Core::DelayLamaAudio::isGlideActive            },
         { "vowelBufferNeedsUpdate",  &DelayLama::Core::DelayLamaAudio::vowelBufferNeedsUpdate  },
-        { "isGateActive",             &DelayLama::Core::DelayLamaAudio::isGateActive             },
+        { "isLegato",             &DelayLama::Core::DelayLamaAudio::isLegato             },
         { "isSinging",                &DelayLama::Core::DelayLamaAudio::isSinging                },
         { "needsMonkAnimationRefresh",&DelayLama::Core::DelayLamaAudio::needsMonkAnimationRefresh },
     };
@@ -227,13 +227,13 @@ TEST_F(DelayLamaAudioInitTest, Initialize_FixedArrays) {
 TEST_F(DelayLamaAudioInitTest, Initialize_PointerArrays_NotNull) {
     EXPECT_NE(audio->stereoDelayLBuffer, nullptr);
     EXPECT_NE(audio->stereoDelayRBuffer, nullptr);
-    EXPECT_NE(audio->synthesisBuffer,    nullptr);
-    EXPECT_NE(audio->excitationBuffer,   nullptr);
+    EXPECT_NE(audio->grainBuffer,    nullptr);
+    EXPECT_NE(audio->voiceBuffer,   nullptr);
     EXPECT_NE(audio->sineTable,          nullptr);
     EXPECT_NE(audio->decayTable,       nullptr);
-    EXPECT_NE(audio->vocalEnvelope,      nullptr);
-    EXPECT_NE(audio->glottalSource,      nullptr);
-    EXPECT_NE(audio->harmonicBuffer,     nullptr);
+    EXPECT_NE(audio->grainWindow,      nullptr);
+    EXPECT_NE(audio->formantWave,      nullptr);
+    EXPECT_NE(audio->fixedFormantBuffer,     nullptr);
     EXPECT_NE(audio->frequencyTable,     nullptr);
     EXPECT_NE(audio->formantTable1,      nullptr);
     EXPECT_NE(audio->formantTable2,      nullptr);
@@ -246,15 +246,15 @@ TEST_F(DelayLamaAudioInitTest, Initialize_PointerArrays_Values) {
     const std::pair<const char*, float*> buffers[] = {
         { "stereoDelayLBuffer", audio->stereoDelayLBuffer },
         { "stereoDelayRBuffer", audio->stereoDelayRBuffer },
-        // synthesisBuffer is not compared: when the fixture was recorded, the original's
+        // grainBuffer is not compared: when the fixture was recorded, the original's
         // vowel/head-size inputs were NaN (uninitialised), so the three formant terms
-        // read glottalSource[0] == 0 and the buffer holds only harmonicBuffer / 2.
-        { "excitationBuffer",   audio->excitationBuffer   },
+        // read formantWave[0] == 0 and the buffer holds only fixedFormantBuffer / 2.
+        { "voiceBuffer",   audio->voiceBuffer   },
         { "sineTable",          audio->sineTable          },
         { "decayTable",       audio->decayTable       },
-        { "vocalEnvelope",      audio->vocalEnvelope      },
-        { "glottalSource",      audio->glottalSource      },
-        { "harmonicBuffer",     audio->harmonicBuffer     },
+        { "grainWindow",      audio->grainWindow      },
+        { "formantWave",      audio->formantWave      },
+        { "fixedFormantBuffer",     audio->fixedFormantBuffer     },
         { "frequencyTable",     audio->frequencyTable     },
         { "formantTable1",      audio->formantTable1      },
         { "formantTable2",      audio->formantTable2      },

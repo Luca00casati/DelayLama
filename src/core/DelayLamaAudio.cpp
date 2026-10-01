@@ -19,13 +19,13 @@ namespace Core {
     // FUNCTION: DELAYLAMA 0x10002820
     DelayLamaAudio::DelayLamaAudio(DamSDK::Api::dispatchFunc hostCallback) : DamSDK::Api::AudioBaseExtended(hostCallback, PRESET_COUNT, PARAMETER_COUNT) {
         Utils::log("DelayLamaAudio::ctor\n");
-        this->synthesisBuffer = nullptr;
-        this->excitationBuffer = nullptr;
+        this->grainBuffer = nullptr;
+        this->voiceBuffer = nullptr;
         this->decayTable = nullptr;
-        this->glottalSource = nullptr;
-        this->harmonicBuffer = nullptr;
+        this->formantWave = nullptr;
+        this->fixedFormantBuffer = nullptr;
         this->sineTable = nullptr;
-        this->vocalEnvelope = nullptr;
+        this->grainWindow = nullptr;
         this->frequencyTable = nullptr;
         this->stereoDelayLBuffer = nullptr;
         this->stereoDelayRBuffer = nullptr;
@@ -68,13 +68,13 @@ namespace Core {
         }
 
         // Delete all dynamically allocated float buffers
-        if (this->synthesisBuffer != nullptr) {
-            delete[] this->synthesisBuffer;
-            this->synthesisBuffer = nullptr;
+        if (this->grainBuffer != nullptr) {
+            delete[] this->grainBuffer;
+            this->grainBuffer = nullptr;
         }
-        if (this->excitationBuffer != nullptr) {
-            delete[] this->excitationBuffer;
-            this->excitationBuffer = nullptr;
+        if (this->voiceBuffer != nullptr) {
+            delete[] this->voiceBuffer;
+            this->voiceBuffer = nullptr;
         }
         if (this->sineTable != nullptr) {
             delete[] this->sineTable;
@@ -84,17 +84,17 @@ namespace Core {
             delete[] this->decayTable;
             this->decayTable = nullptr;
         }
-        if (this->vocalEnvelope != nullptr) {
-            delete[] this->vocalEnvelope;
-            this->vocalEnvelope = nullptr;
+        if (this->grainWindow != nullptr) {
+            delete[] this->grainWindow;
+            this->grainWindow = nullptr;
         }
-        if (this->glottalSource != nullptr) {
-            delete[] this->glottalSource;
-            this->glottalSource = nullptr;
+        if (this->formantWave != nullptr) {
+            delete[] this->formantWave;
+            this->formantWave = nullptr;
         }
-        if (this->harmonicBuffer != nullptr) {
-            delete[] this->harmonicBuffer;
-            this->harmonicBuffer = nullptr;
+        if (this->fixedFormantBuffer != nullptr) {
+            delete[] this->fixedFormantBuffer;
+            this->fixedFormantBuffer = nullptr;
         }
         if (this->frequencyTable != nullptr) {
             delete[] this->frequencyTable;
@@ -137,7 +137,7 @@ namespace Core {
     }
 
     const int kPitchBendCenter = 8192; 
-    const int kExcitationBufferSize = 10240;
+    const int kVoiceBufferSize = 10240;
 #define kDelayTimeSeconds ((double)(0.02))  // 20 milliseconds
 #define kPi ((double)(3.141592654f))  // pi
 #define kPi2 ((double)(6.283185307f))  // 2.0 * pi
@@ -156,11 +156,11 @@ namespace Core {
         Utils::logf("DelayLamaAudio::initialize sampleRate=%f\n", currentSampleRate);
         this->pluginSampleRate = (float)currentSampleRate;
         if (currentSampleRate != this->prevSampleRate) {
-            if (this->synthesisBuffer != nullptr) {
-                delete[] this->synthesisBuffer;
+            if (this->grainBuffer != nullptr) {
+                delete[] this->grainBuffer;
             }
-            if (this->excitationBuffer != nullptr) {
-                delete[] this->excitationBuffer;
+            if (this->voiceBuffer != nullptr) {
+                delete[] this->voiceBuffer;
             }
             if (this->sineTable != nullptr) {
                 delete[] this->sineTable;
@@ -168,14 +168,14 @@ namespace Core {
             if (this->decayTable != nullptr) {
                 delete[] this->decayTable;
             }
-            if (this->vocalEnvelope != nullptr) {
-                delete[] this->vocalEnvelope;
+            if (this->grainWindow != nullptr) {
+                delete[] this->grainWindow;
             }
-            if (this->glottalSource != nullptr) {
-                delete[] this->glottalSource;
+            if (this->formantWave != nullptr) {
+                delete[] this->formantWave;
             }
-            if (this->harmonicBuffer != nullptr) {
-                delete[] this->harmonicBuffer;
+            if (this->fixedFormantBuffer != nullptr) {
+                delete[] this->fixedFormantBuffer;
             }
             if (this->frequencyTable != nullptr) {
                 delete[] this->frequencyTable;
@@ -197,13 +197,13 @@ namespace Core {
             }
 
             // Nullify all dangling pointers
-            this->synthesisBuffer = nullptr;
-            this->excitationBuffer = nullptr;
+            this->grainBuffer = nullptr;
+            this->voiceBuffer = nullptr;
             this->decayTable = nullptr;
-            this->glottalSource = nullptr;
-            this->harmonicBuffer = nullptr;
+            this->formantWave = nullptr;
+            this->fixedFormantBuffer = nullptr;
             this->sineTable = nullptr;
-            this->vocalEnvelope = nullptr;
+            this->grainWindow = nullptr;
             this->frequencyTable = nullptr;
             this->stereoDelayLBuffer = nullptr;
             this->stereoDelayRBuffer = nullptr;
@@ -215,18 +215,18 @@ namespace Core {
 
         // Allocate and Initialize Synthesis Buffers
         this->numSamples = static_cast<long>(this->pluginSampleRate * kDelayTimeSeconds);
-        if (this->synthesisBuffer == nullptr) {
-            this->synthesisBuffer = new float[this->numSamples];
+        if (this->grainBuffer == nullptr) {
+            this->grainBuffer = new float[this->numSamples];
         }
 
-        this->excitationBufferSize = kExcitationBufferSize;
-        if (this->excitationBuffer == nullptr) {
-            this->excitationBuffer = new float[this->excitationBufferSize];
+        this->voiceBufferSize = kVoiceBufferSize;
+        if (this->voiceBuffer == nullptr) {
+            this->voiceBuffer = new float[this->voiceBufferSize];
         }
 
-        // Clear excitation buffer
-        for (i = 0; i < this->excitationBufferSize; ++i) {
-            this->excitationBuffer[i] = 0.0f;
+        // Clear the voice buffer
+        for (i = 0; i < this->voiceBufferSize; ++i) {
+            this->voiceBuffer[i] = 0.0f;
         }
 
         // Exponential decay table, shared by the three formants
@@ -244,22 +244,22 @@ namespace Core {
             }
         }
 
-        // Generate Glottal Source Table (Sine math)
-        this->glottalTableSize = 1024;
-        if (this->glottalSource == nullptr) {
-            this->glottalSource = new float[this->glottalTableSize];
+        // Sine wavetable the three formants oscillate on
+        this->formantWaveSize = 1024;
+        if (this->formantWave == nullptr) {
+            this->formantWave = new float[this->formantWaveSize];
         }
 
-        for (i = 0; i < this->glottalTableSize; ++i) {
-            double value = sin((i * kPi2) / (double)this->glottalTableSize);
-            this->glottalSource[i] = (float)value;
+        for (i = 0; i < this->formantWaveSize; ++i) {
+            double value = sin((i * kPi2) / (double)this->formantWaveSize);
+            this->formantWave[i] = (float)value;
         }
 
-        this->glottalPhaseInc = (float)this->glottalTableSize / (float)this->pluginSampleRate;
+        this->formantWaveStepsPerHz = (float)this->formantWaveSize / (float)this->pluginSampleRate;
         
-        // Generate Harmonic Buffer
-        if (this->harmonicBuffer == nullptr) {
-            this->harmonicBuffer = new float[this->numSamples];
+        // Two fixed high formants (about 4950 Hz and 3800 Hz), added to every grain
+        if (this->fixedFormantBuffer == nullptr) {
+            this->fixedFormantBuffer = new float[this->numSamples];
         }
 
         // Two decaying sine components, each shaped by the formant decay table
@@ -267,8 +267,8 @@ namespace Core {
         double envPhase1 = 0.0;
         for (i = 0; i < this->numSamples; ++i) {
             double phase = i * 6.283185307;
-            this->harmonicBuffer[i] = (float)sin(phase / (this->pluginSampleRate * 0.00020202021f)) * this->decayTable[(long)envPhase1];
-            this->harmonicBuffer[i] += (float)sin(phase / (this->pluginSampleRate * 0.00026315788f)) * this->decayTable[(long)envPhase2];
+            this->fixedFormantBuffer[i] = (float)sin(phase / (this->pluginSampleRate * 0.00020202021f)) * this->decayTable[(long)envPhase1];
+            this->fixedFormantBuffer[i] += (float)sin(phase / (this->pluginSampleRate * 0.00026315788f)) * this->decayTable[(long)envPhase2];
             envPhase1 += 3.0f;
             envPhase2 += 3.6f;
         }
@@ -285,8 +285,8 @@ namespace Core {
         }
 
         // Envelope Generator (ADSR style shaping)
-         if (this->vocalEnvelope == nullptr) {
-            this->vocalEnvelope = new float[this->numSamples];
+         if (this->grainWindow == nullptr) {
+            this->grainWindow = new float[this->numSamples];
         }
 
         this->attackSamples  = static_cast<long>(this->pluginSampleRate * kAttackTime);
@@ -295,7 +295,7 @@ namespace Core {
 
         // Fill Envelope with 1.0 (0x3f800000)
         for (i = 0; i < this->numSamples; ++i) {
-            this->vocalEnvelope[i] = 1.0f;
+            this->grainWindow[i] = 1.0f;
         }
         
         // Apply Attack Phase (Cosine shaping)
@@ -304,7 +304,7 @@ namespace Core {
             for (i = 0; i < attackSamples; ++i) {
                 double phase = (static_cast<double>(i) * kPi) / static_cast<double>(attackSamples);
                 float value = static_cast<float>(0.5 * (1.0 - cos(phase)));
-                this->vocalEnvelope[i] = value;
+                this->grainWindow[i] = value;
             }
         }
 
@@ -312,7 +312,7 @@ namespace Core {
         for (int idx = this->sustainStart; idx < this->numSamples; ++idx) {
             double phase = (static_cast<double>(idx) * kPi) / static_cast<double>(this->releaseSamples);
             float value = static_cast<float>(0.5 * (1.0 + cos(phase)));
-            this->vocalEnvelope[idx] = value;
+            this->grainWindow[idx] = value;
         }
         
         // Pitch/Frequency Lookup Table
@@ -448,7 +448,7 @@ namespace Core {
         synthesizeVowelBuffer(0.5f);
 
         this->prevVowelValue = 0.5;
-        this->isGateActive = false;
+        this->isLegato = false;
         this->voicePitch = 36.0;
         this->lfoRate = 4.0;
         this->vibratoDepth = 0.0;
@@ -473,7 +473,7 @@ namespace Core {
         this->startIdleAnimation = idleSamplesPerFrame * 23;
 
         this->pulseWriteIndex = 0;
-        this->excitationReadIndex = 0;
+        this->voiceReadIndex = 0;
         this->samplesSincePulse = 0;
         this->sampleCounter = 0;
 
@@ -510,11 +510,11 @@ namespace Core {
 
         this->midiEventReadIndex = 0;
 
-        // Keep the excitation buffer write index within the buffer
-        if (this->samplesSincePulse >= this->excitationBufferSize)
-            this->samplesSincePulse -= this->excitationBufferSize;
+        // Keep the samples-since-pulse counter within the voice buffer
+        if (this->samplesSincePulse >= this->voiceBufferSize)
+            this->samplesSincePulse -= this->voiceBufferSize;
         if (this->samplesSincePulse < 0)
-            this->samplesSincePulse += this->excitationBufferSize;
+            this->samplesSincePulse += this->voiceBufferSize;
 
         // Control rate: MIDI, parameter smoothing, animation, LFO and voice synthesis
         frames = sampleFrames;
@@ -584,7 +584,7 @@ namespace Core {
                 }
 
                 // Portamento: glide the pitch towards its target
-                if (this->isGateActive)
+                if (this->isLegato)
                 {
                     if (this->notePitch + 0.2f < this->glidePitch)
                         this->glideStep = -12.0f / ((this->portamentoTime + 0.01f) * this->pluginSampleRate);
@@ -620,12 +620,12 @@ namespace Core {
                 this->voiceFrequency = this->frequencyTable[-(long)(this->voicePitch * -32.0f)];
                 this->periodSamples = (long)(this->pluginSampleRate / this->voiceFrequency);
 
-                // Start the next glottal pulse once a full period has been written
+                // Start the next grain once a full pitch period has passed
                 if (this->samplesSincePulse >= this->periodSamples || this->vowelBufferNeedsUpdate)
                 {
                     if (this->vowelBufferNeedsUpdate)
                         this->synthesizeVowelBuffer(this->curVowelValue);
-                    this->addSynthesisToExcitation(this->samplesSincePulse);
+                    this->addGrainToVoice(this->samplesSincePulse);
                     this->samplesSincePulse = 0;
                     this->vowelBufferNeedsUpdate = false;
                 }
@@ -668,8 +668,8 @@ namespace Core {
         // Audio rate: stereo delay and output
         for (int i = 0; i < sampleFrames; i++)
         {
-            while (this->excitationReadIndex >= this->excitationBufferSize)
-                this->excitationReadIndex -= this->excitationBufferSize;
+            while (this->voiceReadIndex >= this->voiceBufferSize)
+                this->voiceReadIndex -= this->voiceBufferSize;
 
             int delaySize = this->delayBufferSize;
             while (this->delayWriteIndex >= delaySize)
@@ -685,18 +685,18 @@ namespace Core {
             while (this->delayReadIndexR < 0)
                 this->delayReadIndexR += delaySize;
 
-            this->stereoDelayLBuffer[this->delayWriteIndex] = (this->stereoDelayLBuffer[this->delayReadIndexL] * this->delayFeedback + this->excitationBuffer[this->excitationReadIndex]) * this->delay;
-            this->stereoDelayRBuffer[this->delayWriteIndex] = (this->stereoDelayRBuffer[this->delayReadIndexR] * this->delayFeedback + this->excitationBuffer[this->excitationReadIndex]) * this->delay;
+            this->stereoDelayLBuffer[this->delayWriteIndex] = (this->stereoDelayLBuffer[this->delayReadIndexL] * this->delayFeedback + this->voiceBuffer[this->voiceReadIndex]) * this->delay;
+            this->stereoDelayRBuffer[this->delayWriteIndex] = (this->stereoDelayRBuffer[this->delayReadIndexR] * this->delayFeedback + this->voiceBuffer[this->voiceReadIndex]) * this->delay;
             this->delayWriteIndex++;
 
             // The output gain depends slightly on the pitch
-            outLeft[i] = (this->excitationBuffer[this->excitationReadIndex] + this->stereoDelayLBuffer[this->delayReadIndexL]) * (((float)(this->glidePitch * -0.013888889f) + 2.0f) * this->outputGain);
+            outLeft[i] = (this->voiceBuffer[this->voiceReadIndex] + this->stereoDelayLBuffer[this->delayReadIndexL]) * (((float)(this->glidePitch * -0.013888889f) + 2.0f) * this->outputGain);
             this->delayReadIndexL++;
-            outRight[i] = (this->excitationBuffer[this->excitationReadIndex] + this->stereoDelayRBuffer[this->delayReadIndexR]) * (((float)(this->glidePitch * -0.013888889f) + 2.0f) * this->outputGain);
+            outRight[i] = (this->voiceBuffer[this->voiceReadIndex] + this->stereoDelayRBuffer[this->delayReadIndexR]) * (((float)(this->glidePitch * -0.013888889f) + 2.0f) * this->outputGain);
             this->delayReadIndexR++;
 
-            this->excitationBuffer[this->excitationReadIndex] = 0;
-            this->excitationReadIndex++;
+            this->voiceBuffer[this->voiceReadIndex] = 0;
+            this->voiceReadIndex++;
         }
     }
 
@@ -1140,21 +1140,21 @@ namespace Core {
     }
 
     // FUNCTION: DELAYLAMA 0x10005eb0
-    void DelayLamaAudio::addSynthesisToExcitation(int offsetIncrement) {
-        // Mix the synthesised pulse into the excitation ring buffer at the write position
+    void DelayLamaAudio::addGrainToVoice(int offsetIncrement) {
+        // Overlap-add the grain into the voice ring buffer at the write position
         this->pulseWriteIndex += offsetIncrement;
-        if (this->pulseWriteIndex + this->numSamples > this->excitationBufferSize || this->pulseWriteIndex < 0) {
+        if (this->pulseWriteIndex + this->numSamples > this->voiceBufferSize || this->pulseWriteIndex < 0) {
             for (int i = 0; i < this->numSamples; i++) {
-                while (this->pulseWriteIndex >= this->excitationBufferSize)
-                    this->pulseWriteIndex -= this->excitationBufferSize;
+                while (this->pulseWriteIndex >= this->voiceBufferSize)
+                    this->pulseWriteIndex -= this->voiceBufferSize;
                 while (this->pulseWriteIndex < 0)
-                    this->pulseWriteIndex += this->excitationBufferSize;
-                this->excitationBuffer[this->pulseWriteIndex] += this->synthesisBuffer[i];
+                    this->pulseWriteIndex += this->voiceBufferSize;
+                this->voiceBuffer[this->pulseWriteIndex] += this->grainBuffer[i];
                 this->pulseWriteIndex++;
             }
         } else {
             for (int i = 0; i < this->numSamples; i++) {
-                this->excitationBuffer[this->pulseWriteIndex] += this->synthesisBuffer[i];
+                this->voiceBuffer[this->pulseWriteIndex] += this->grainBuffer[i];
                 this->pulseWriteIndex++;
             }
         }
@@ -1179,18 +1179,18 @@ namespace Core {
         int tableIndex = static_cast<int>(vowelIndex);
 
         // Per-formant frequency (Hz-ish) at this vowel position, converted to
-        // glottalSource-table steps per sample via glottalPhaseInc (steps per Hz).
+        // formantWave-table steps per sample via formantWaveStepsPerHz (steps per Hz).
         // The original multiplies at x87 precision and rounds once to float; double
         // does the same with SSE2 compilers.
-        float glotStep1 = (float)((double)resonanceGain * this->formantTable1[tableIndex] * this->glottalPhaseInc);
-        float glotStep2 = (float)((double)resonanceGain * this->formantTable2[tableIndex] * this->glottalPhaseInc);
-        float glotStep3 = (float)((double)resonanceGain * this->formantTable3[tableIndex] * this->glottalPhaseInc);
+        float glotStep1 = (float)((double)resonanceGain * this->formantTable1[tableIndex] * this->formantWaveStepsPerHz);
+        float glotStep2 = (float)((double)resonanceGain * this->formantTable2[tableIndex] * this->formantWaveStepsPerHz);
+        float glotStep3 = (float)((double)resonanceGain * this->formantTable3[tableIndex] * this->formantWaveStepsPerHz);
 
         if (this->numSamples <= 0) {
             return;
         }
 
-        // Glottal source (carrier) phases: one per formant, wrap at glottalTableSize.
+        // Wavetable phases: one per formant, wrap at formantWaveSize.
         // The original keeps all six phases in x87 registers for the whole loop; double
         // keeps the (int) lookups the same as the original with any compiler.
         double glotPhase1 = 0.0;
@@ -1204,35 +1204,35 @@ namespace Core {
 
         for (int i = 0; i < this->numSamples; ++i) {
             // Formant 1 (F1)
-            this->synthesisBuffer[i] = this->glottalSource[static_cast<int>(glotPhase1)] *
+            this->grainBuffer[i] = this->formantWave[static_cast<int>(glotPhase1)] *
                                         this->decayTable[static_cast<int>(envPhase1)];
             envPhase1 += this->formant1Bandwidth;
             glotPhase1 += glotStep1;
-            if (glotPhase1 >= this->glottalTableSize) {
-                glotPhase1 -= this->glottalTableSize;
+            if (glotPhase1 >= this->formantWaveSize) {
+                glotPhase1 -= this->formantWaveSize;
             }
 
             // Formant 2 (F2)
-            this->synthesisBuffer[i] += this->glottalSource[static_cast<int>(glotPhase2)] *
+            this->grainBuffer[i] += this->formantWave[static_cast<int>(glotPhase2)] *
                                          this->decayTable[static_cast<int>(envPhase2)];
             envPhase2 += this->formant2Bandwidth;
             glotPhase2 += glotStep2;
-            if (glotPhase2 >= this->glottalTableSize) {
-                glotPhase2 -= this->glottalTableSize;
+            if (glotPhase2 >= this->formantWaveSize) {
+                glotPhase2 -= this->formantWaveSize;
             }
 
             // Formant 3 (F3)
-            this->synthesisBuffer[i] += this->glottalSource[static_cast<int>(glotPhase3)] *
+            this->grainBuffer[i] += this->formantWave[static_cast<int>(glotPhase3)] *
                                          this->decayTable[static_cast<int>(envPhase3)];
             envPhase3 += this->formant3Bandwidth;
             glotPhase3 += glotStep3;
-            if (glotPhase3 >= this->glottalTableSize) {
-                glotPhase3 -= this->glottalTableSize;
+            if (glotPhase3 >= this->formantWaveSize) {
+                glotPhase3 -= this->formantWaveSize;
             }
 
-            // Apply harmonic buffer (0.5 coefficient) and vocal envelope
-            this->synthesisBuffer[i] += this->harmonicBuffer[i] * 0.5;
-            this->synthesisBuffer[i] *= this->vocalEnvelope[i];
+            // Add the fixed formants (at half level) and apply the grain window
+            this->grainBuffer[i] += this->fixedFormantBuffer[i] * 0.5;
+            this->grainBuffer[i] *= this->grainWindow[i];
         }
     }
 
@@ -1295,13 +1295,13 @@ namespace Core {
         this->isSinging = activeNote != 0;
 
         if (activeNote == 0) {
-            this->isGateActive = false;
+            this->isLegato = false;
             this->setParameterValue(MonkSpriteParameterId, 0.1667f);  // mouth closed
             this->currentIdleFrame = 0;
             this->needsMonkAnimationRefresh = true;
         }
-        if (this->noteStack[1] != 0 && this->isGateActive == false)
-            this->isGateActive = true;
+        if (this->noteStack[1] != 0 && this->isLegato == false)
+            this->isLegato = true;
     }
 
     // FUNCTION: DELAYLAMA 0x10006330
