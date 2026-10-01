@@ -11,7 +11,7 @@ namespace Controls {
         public:
             // Member variables from original decompilation
             RECT destRect;
-            RECT absRect;
+            RECT keepRect;  // the control's own rect while the splash is shown
             POINT srcPoint;
             
         public:

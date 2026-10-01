@@ -17,10 +17,10 @@ namespace Controls {
         this->destRect.right = destRect->right;
         this->destRect.bottom = destRect->bottom;
 
-        this->absRect.left = 0;
-        this->absRect.top = 0;
-        this->absRect.right = 0;
-        this->absRect.bottom = 0;
+        this->keepRect.left = 0;
+        this->keepRect.top = 0;
+        this->keepRect.right = 0;
+        this->keepRect.bottom = 0;
 
         this->srcPoint.x = srcPoint->x;
         this->srcPoint.y = srcPoint->y;
@@ -47,50 +47,32 @@ namespace Controls {
 
     // FUNCTION: DELAYLAMA 0x1000a630
     void SplashScreen::onMouseDown(DamSDK::Gui::Platform::Windows::GDIDrawingContext* drawingContext, POINT* mousePos) {
-        if (this->isEnabled && (drawingContext->getMouseButtons() & 0x1) != 0) {
-            bool isDismissing = (this->value == 0.0f);
-            Utils::logf("SplashScreen::onMouseDown %s\n", isDismissing ? "show" : "dismiss");
-            this->value = (float)(int)isDismissing;
+        if (!this->isEnabled)
+            return;
+        int buttons = drawingContext->getMouseButtons();
+        if (!(buttons & 1))
+            return;
 
-            if (isDismissing) {
-                // Dismiss: restore rect from absRect and clear modal view
-                this->rect.left = this->absRect.left;
-                this->rect.top = this->absRect.top;
-                this->rect.right = this->absRect.right;
-                this->rect.bottom = this->absRect.bottom;
-
-                DamSDK::Gui::Platform::Windows::Window* parentPtr = this->parent;
-                if (parentPtr != nullptr) {
-                    parentPtr->setModalView(nullptr);
-                    parentPtr->onDraw(drawingContext);
-                }
-
+        this->value = !this->value;
+        if (this->value) {
+            // Show: grow to the splash rect and take over the mouse
+            if (this->parent != nullptr && this->parent->setModalView(this)) {
+                this->keepRect = this->rect;
+                this->rect = this->destRect;
+                this->onDraw(drawingContext);
                 this->listener->valueChanged(drawingContext, this);
             }
-            else {
-                // Show: set modal view and save current rect to absRect
-                DamSDK::Gui::Platform::Windows::Window* parentPtr = this->parent;
-                if (parentPtr != nullptr && parentPtr->setModalView((DamSDK::Gui::Base::View *)this) != 0) {
-                    RECT* rectPtr = &this->rect;
-
-                    this->absRect.left = rectPtr->left;
-                    this->absRect.top = rectPtr->top;
-                    this->absRect.right = rectPtr->right;
-                    this->absRect.bottom = rectPtr->bottom;
-
-                    rectPtr->left = this->destRect.left;
-                    rectPtr->top = this->destRect.top;
-                    rectPtr->right = this->destRect.right;
-                    rectPtr->bottom = this->destRect.bottom;
-
-                    this->onDraw(drawingContext);
-                    this->listener->valueChanged(drawingContext, this);
-                    this->setDirty(true);
-                    return;
-                }
-            }
-            this->setDirty(true);
         }
+        else {
+            // Dismiss: back to the control's own rect
+            this->rect = this->keepRect;
+            if (this->parent != nullptr) {
+                this->parent->setModalView(nullptr);
+                this->parent->onDraw(drawingContext);
+            }
+            this->listener->valueChanged(drawingContext, this);
+        }
+        this->setDirty(true);
     }
 }
 }
