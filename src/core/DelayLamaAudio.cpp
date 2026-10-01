@@ -262,29 +262,15 @@ namespace Core {
             this->harmonicBuffer = new float[this->numSamples];
         }
 
-        double sampleRateAccum = 0.0;
+        // Two decaying sine components, each shaped by the formant decay table
+        double envPhase2 = 0.0;
+        double envPhase1 = 0.0;
         for (i = 0; i < this->numSamples; ++i) {
-            double fVar2 = i * 6.283185307;
-            
-            // First fsin call
-            double sinInput1 = fVar2 / (this->pluginSampleRate * 0.00020202021);
-            double fsinResult1 = sin(sinInput1);
-            
-            // Use accumulator as index, store first component
-            int tableIdx1 = (int)sampleRateAccum;
-            float* harmonicBufPtr = &this->harmonicBuffer[i];
-            harmonicBufPtr[0] = (float)fsinResult1 * this->formantTable[tableIdx1];
-            
-            // Second fsin call uses the FIRST result as input (extraout_ST1 pattern)
-            double sinInput2 = fsinResult1 / (this->pluginSampleRate * 0.00026315788);
-            double fsinResult2 = sin(sinInput2);
-            
-            // Add second component to the same buffer location
-            int tableIdx2 = (int)fVar2;
-            harmonicBufPtr[0] += (float)fsinResult2 * this->formantTable[tableIdx2];
-            
-            // Update accumulator: sampleRate = fVar2 + 3.0
-            sampleRateAccum = fVar2 + 3.0;
+            double phase = i * 6.283185307;
+            this->harmonicBuffer[i] = (float)sin(phase / (this->pluginSampleRate * 0.00020202021f)) * this->formantTable[(long)envPhase1];
+            this->harmonicBuffer[i] += (float)sin(phase / (this->pluginSampleRate * 0.00026315788f)) * this->formantTable[(long)envPhase2];
+            envPhase1 += 3.0f;
+            envPhase2 += 3.6f;
         }
 
         // FO / Sine Table Initialization
@@ -1036,61 +1022,43 @@ namespace Core {
     }
 
     // FUNCTION: DELAYLAMA 0x10005350
-    void DelayLamaAudio::buildFormantCurveTable(int32_t *controlPoints,float *outSamples)
-    {
-        float *outPtr;
-        int x;
-        int32_t *window;
-        int segmentEnd;
-        int32_t controlWindow [6];
-        int p0;
-        int p1;
-        int p2;
-        int pMinus1;
-        float t;
-        
-        controlWindow[0] = *controlPoints;
-        controlWindow[2] = controlPoints[2];
-        controlWindow[1] = controlPoints[1];
-        controlWindow[3] = controlPoints[3];
-        controlWindow[4] = controlPoints[4];
-        controlWindow[5] = controlPoints[4];
-        controlPoints = (int32_t *)0x1;
-        segmentEnd = 320;
-        window = controlWindow;
-        do {
-            x = segmentEnd + -320;
-            if (x < segmentEnd) {
-                // next point
-                p2 = window[2];
-                // current point
-                p1 = *window;
-                // previous point
-                p0 = window[1];
-                // point before previous
-                pMinus1 = window[-1];
-                outPtr = outSamples;
+    void DelayLamaAudio::buildFormantCurveTable(int32_t* controlPoints, float* outSamples) {
+        // Catmull-Rom spline through the 5 control points, 320 samples per segment.
+        // The first and last points are repeated so every segment has neighbours.
+        int32_t points[7];
+        points[0] = controlPoints[0];
+        points[1] = controlPoints[0];
+        points[3] = controlPoints[2];
+        points[2] = controlPoints[1];
+        points[4] = controlPoints[3];
+        points[5] = controlPoints[4];
+        points[6] = controlPoints[4];
+
+        int32_t* p = &points[1];
+        int segment = 1;
+        for (int end = 320; end < 1600; end += 320) {
+            float start = (float)((segment - 1) * 320.0);
+            int x = end - 320;
+            if (x < end) {
+                int p3 = p[2];
+                int p1 = p[0];
+                int p2 = p[1];
+                int p0 = p[-1];
+                float a = (float)((p1 - p2) * 3 - p0 + p3) * 0.5f;
+                float b = (float)p2 + (float)p2 + p0 - (float)((p1 + p3 + p1 * 4) / 2);
+                float c = (float)(p2 - p0) * 0.5f;
+                float d = (float)p1;
+                float* out = outSamples;
                 do {
-                    t = (float)x;
-                    x += 1;
-                // Normalize t to [0, 1] within segment
-                    t = (t - (float)((int)controlPoints + -1) * 320.0f) * 0.003125f;
-                // Cubic interpolation
-                    *outPtr = ((t * (float)(((p1 - p0) * 3 - pMinus1) + p2) * 0.5f +
-                            (((float)p0 + (float)p0 + (float)pMinus1) - (float)((p1 + p2 + p1 * 4) / 2))) * t
-                            + (float)(p0 - pMinus1) * 0.5f) * t + (float)p1;
-                    outPtr = outPtr + 1;
-                } while (x < segmentEnd);
+                    float t = ((float)x - start) * 0.003125f;
+                    x++;
+                    *out++ = ((t * a + b) * t + c) * t + d;
+                } while (x < end);
             }
-            segmentEnd += 320;
-            // segment index++
-            controlPoints = (int32_t *)((int)controlPoints + 1);
-            // slide control window
-            window = window + 1;
-            // next segment (320 samples)
-            outSamples = outSamples + 320;
-        } while (segmentEnd < 1600);
-        return;
+            segment++;
+            p++;
+            outSamples += 320;
+        }
     }
 
     // FUNCTION: DELAYLAMA 0x100054a0
@@ -1246,8 +1214,8 @@ namespace Core {
         float glotPhase3 = 0.0f;
 
         // Formant envelope phases (index into the shared exponential decay/bandwidth table):
-        float envPhase1 = 0.0f;
-        float envPhase2 = 0.0f;
+        double envPhase1 = 0.0;
+        double envPhase2 = 0.0;
         float envPhase3 = 0.0f;
 
         for (int i = 0; i < this->numSamples; ++i) {
