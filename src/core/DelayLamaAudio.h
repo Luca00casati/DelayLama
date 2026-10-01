@@ -33,8 +33,7 @@ namespace Core {
             int32_t midiEventReadIndex; // 0xdc
             DamSDK::Api::MidiEvent midiQueue[1024]; // 0xe0
             DamSDK::Api::DamMidiEvent midiEvent; // 0x40e0
-            DamSDK::Api::DamMidiEventList midiEventList; // 0x40fc
-            int unknownMidi; // 0x410c
+            DamSDK::Api::DamMidiEventList midiEventList; // 0x4100
             int32_t midiDataValue; // 0x4110
             int currentMidiEventData1; // 0x4114
             int currentMidiEventData2; // 0x4118

@@ -1122,63 +1122,37 @@ namespace Core {
             }
         }
 
-        // If the interpolation logic was triggered above, this block executes at specific intervals throughout the buffer processing to update the pitch incrementally.
-        int nextInterpSample = this->isInterpActive;
-        int currentInterpIdx = this->interpCurrentIdx;
-        if (((sampleIdx == nextInterpSample) && (sampleIdx != 0)) && currentInterpIdx < this->interpEventCount) {
-
-            // Apply the next piece of pitch data from the interpolation queue
-            this->pitchBase = this->pitchInterpData1[currentInterpIdx];
-            pitchInterpCount = this->pitchInterpData2[currentInterpIdx];
-            this->interpCurrentIdx = currentInterpIdx + 1;
-            this->pitchTargetRaw = pitchInterpCount;
+        // Pitch bends from the start of the buffer are applied one by one, spread
+        // evenly across it (isInterpActive holds the sample of the next one)
+        if (sampleIdx == this->isInterpActive && sampleIdx != 0 && this->interpCurrentIdx < this->interpEventCount) {
+            this->pitchBase = this->pitchInterpData1[this->interpCurrentIdx];
+            this->pitchTargetRaw = this->pitchInterpData2[this->interpCurrentIdx];
+            this->interpCurrentIdx++;
             this->pitchTargetDirty = true;
-
-            // Set the timestamp for the next interpolation step
-            this->isInterpActive = this->interpSampleStep + nextInterpSample;
+            this->isInterpActive += this->interpSampleStep;
         }
     }
 
     // FUNCTION: DELAYLAMA 0x10005eb0
     void DelayLamaAudio::addSynthesisToExcitation(int offsetIncrement) {
-        int i = this->writeIndex + offsetIncrement;
-        this->writeIndex = i;
-        int bufSize = this->numSamples;
-        if ((this->excitationBufferSize < bufSize + i) || (i < 0)) {
-          i = 0;
-          if (0 < bufSize) {
-            do {
-              bufSize = this->excitationBufferSize;
-              int tmpIdx = this->writeIndex;
-              while (bufSize <= tmpIdx) {
-                tmpIdx = this->writeIndex - bufSize;
-                this->writeIndex = tmpIdx;
-              }
-              tmpIdx = this->writeIndex;
-              while (tmpIdx < 0) {
-                tmpIdx = this->writeIndex + bufSize;
-                this->writeIndex = tmpIdx;
-              }
-              float* dstPtr = &this->excitationBuffer[this->writeIndex];
-              *dstPtr += this->synthesisBuffer[i];
-              i++;
-              this->writeIndex++;
-            } while (i < this->numSamples);
-          }
+        // Mix the synthesised pulse into the excitation ring buffer at the write position
+        this->writeIndex += offsetIncrement;
+        if (this->writeIndex + this->numSamples > this->excitationBufferSize || this->writeIndex < 0) {
+            for (int i = 0; i < this->numSamples; i++) {
+                while (this->writeIndex >= this->excitationBufferSize)
+                    this->writeIndex -= this->excitationBufferSize;
+                while (this->writeIndex < 0)
+                    this->writeIndex += this->excitationBufferSize;
+                this->excitationBuffer[this->writeIndex] += this->synthesisBuffer[i];
+                this->writeIndex++;
+            }
+        } else {
+            for (int i = 0; i < this->numSamples; i++) {
+                this->excitationBuffer[this->writeIndex] += this->synthesisBuffer[i];
+                this->writeIndex++;
+            }
         }
-        else {
-          i = 0;
-          if (0 < bufSize) {
-            do {
-              float* dstPtr = &this->excitationBuffer[this->writeIndex];
-              *dstPtr += this->synthesisBuffer[i];
-              i = i + 1;
-              this->writeIndex = this->writeIndex + 1;
-            } while (i < this->numSamples);
-          }
-        }
-        this->writeIndex = this->writeIndex - this->numSamples;
-        return;
+        this->writeIndex -= this->numSamples;
     }
 
 #define kTableIndexMax ((float)(1279.0f))
@@ -1380,8 +1354,8 @@ namespace Core {
     // FUNCTION: DELAYLAMA 0x10006430
     void DelayLamaAudio::sendMidiToHost(uint8_t status, uint8_t data1, uint8_t data2) {
         Utils::logf("DelayLamaAudio::sendMidiToHost status=0x%02x data1=%d data2=%d\n", status, data1, data2);
-        DamSDK::Api::DamMidiEvent* damMidiEvent = &this->midiEvent;
         DamSDK::Api::DamMidiEventList* eventList = &this->midiEventList;
+        DamSDK::Api::DamMidiEvent* damMidiEvent = &this->midiEvent;
 
         this->midiEventList.events[0] = &damMidiEvent->event;
 
@@ -1389,7 +1363,7 @@ namespace Core {
         this->midiEvent.midiData[0] = status;
         this->midiEvent.midiData[1] = data1;
         eventList->listSize = 1;
-        this->unknownMidi = 0;
+        this->midiEventList.events[1] = 0;
         this->midiEvent.event.eventSize = 24;
         this->midiEvent.event.frames = 0;
         this->midiEvent.midiData[2] = data2;
