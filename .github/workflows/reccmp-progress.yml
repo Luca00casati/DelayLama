@@ -14,6 +14,8 @@ permissions:
 
 jobs:
   reccmp-progress:
+    # Needs the DLL_PAT secret for the private assets repository, which forks don't have
+    if: github.repository == 'Jor02/DelayLama'
     runs-on: windows-2022
 
     steps:
