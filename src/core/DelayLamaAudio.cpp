@@ -1208,15 +1208,17 @@ namespace Core {
             return;
         }
 
-        // Glottal source (carrier) phases: one per formant, wrap at glottalTableSize
-        float glotPhase1 = 0.0f;
-        float glotPhase2 = 0.0f;
-        float glotPhase3 = 0.0f;
+        // Glottal source (carrier) phases: one per formant, wrap at glottalTableSize.
+        // The original keeps all six phases in x87 registers for the whole loop; double
+        // keeps the (int) lookups the same as the original with any compiler.
+        double glotPhase1 = 0.0;
+        double glotPhase2 = 0.0;
+        double glotPhase3 = 0.0;
 
         // Formant envelope phases (index into the shared exponential decay/bandwidth table):
         double envPhase1 = 0.0;
         double envPhase2 = 0.0;
-        float envPhase3 = 0.0f;
+        double envPhase3 = 0.0;
 
         for (int i = 0; i < this->numSamples; ++i) {
             // Formant 1 (F1)
@@ -1247,7 +1249,7 @@ namespace Core {
             }
 
             // Apply harmonic buffer (0.5 coefficient) and vocal envelope
-            this->synthesisBuffer[i] += this->harmonicBuffer[i] * 0.5f;
+            this->synthesisBuffer[i] += this->harmonicBuffer[i] * 0.5;
             this->synthesisBuffer[i] *= this->vocalEnvelope[i];
         }
     }
