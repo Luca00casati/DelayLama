@@ -10,6 +10,12 @@
 namespace DelayLama {
 namespace Core {
 
+    // FUNCTION: DELAYLAMA 0x10002810
+    Preset::Preset() {}
+
+    // FUNCTION: DELAYLAMA 0x100015b0 FOLDED
+    Preset::~Preset() {}
+
     // FUNCTION: DELAYLAMA 0x10002820
     DelayLamaAudio::DelayLamaAudio(DamSDK::Api::dispatchFunc hostCallback) : DamSDK::Api::AudioBaseExtended(hostCallback, PRESET_COUNT, PARAMETER_COUNT) {
         Utils::log("DelayLamaAudio::ctor\n");
@@ -31,7 +37,6 @@ namespace Core {
         this->presets = new Preset[5];
 
         if (this->presets != nullptr) {
-            constructPresetArray(this->presets, 36, 5, (void*)DelayLamaAudio::presetElementConstructor, nullptr);
             initPresets();
             loadPresetByIndex(0);
         }
@@ -397,30 +402,30 @@ namespace Core {
         }
 
         // Vowel Preset Values
-        this->monkIdleFrameTable[0]  = MONK_FRAME_VAL(0, 5);
-        this->monkIdleFrameTable[1]  = MONK_FRAME_VAL(0, 3);
-        this->monkIdleFrameTable[2]  = MONK_FRAME_VAL(0, 4);
-        this->monkIdleFrameTable[3]  = MONK_FRAME_VAL(0, 3);
-        this->monkIdleFrameTable[4]  = MONK_FRAME_VAL(0, 2);
-        this->monkIdleFrameTable[5]  = MONK_FRAME_VAL(0, 1);
-        this->monkIdleFrameTable[6]  = MONK_FRAME_VAL(0, 0);
-        this->monkIdleFrameTable[7]  = MONK_FRAME_VAL(0, 1);
-        this->monkIdleFrameTable[8]  = MONK_FRAME_VAL(0, 5);
-        this->monkIdleFrameTable[9]  = MONK_FRAME_VAL(0, 3);
-        this->monkIdleFrameTable[10] = MONK_FRAME_VAL(0, 4);
-        this->monkIdleFrameTable[11] = MONK_FRAME_VAL(0, 3);
-        this->monkIdleFrameTable[12] = MONK_FRAME_VAL(0, 5);
-        this->monkIdleFrameTable[13] = MONK_FRAME_VAL(0, 1);
-        this->monkIdleFrameTable[14] = MONK_FRAME_VAL(0, 0);
-        this->monkIdleFrameTable[15] = MONK_FRAME_VAL(0, 1);
-        this->monkIdleFrameTable[16] = MONK_FRAME_VAL(0, 2);
-        this->monkIdleFrameTable[17] = MONK_FRAME_VAL(0, 3);
-        this->monkIdleFrameTable[18] = MONK_FRAME_VAL(0, 4);
-        this->monkIdleFrameTable[19] = MONK_FRAME_VAL(0, 3);
-        this->monkIdleFrameTable[20] = MONK_FRAME_VAL(0, 5);
-        this->monkIdleFrameTable[21] = MONK_FRAME_VAL(0, 1);
-        this->monkIdleFrameTable[22] = MONK_FRAME_VAL(0, 0);
-        this->monkIdleFrameTable[23] = MONK_FRAME_VAL(0, 1);
+        this->monkIdleFrameTable[0]  = 0.1667f;
+        this->monkIdleFrameTable[1]  = 0.1f;
+        this->monkIdleFrameTable[2]  = 0.1333f;
+        this->monkIdleFrameTable[3]  = 0.1f;
+        this->monkIdleFrameTable[4]  = 0.0667f;
+        this->monkIdleFrameTable[5]  = 0.0333f;
+        this->monkIdleFrameTable[6]  = 0.0f;
+        this->monkIdleFrameTable[7]  = 0.0333f;
+        this->monkIdleFrameTable[8]  = 0.1667f;
+        this->monkIdleFrameTable[9]  = 0.1f;
+        this->monkIdleFrameTable[10] = 0.1333f;
+        this->monkIdleFrameTable[11] = 0.1f;
+        this->monkIdleFrameTable[12] = 0.1667f;
+        this->monkIdleFrameTable[13] = 0.0333f;
+        this->monkIdleFrameTable[14] = 0.0f;
+        this->monkIdleFrameTable[15] = 0.0333f;
+        this->monkIdleFrameTable[16] = 0.0667f;
+        this->monkIdleFrameTable[17] = 0.1f;
+        this->monkIdleFrameTable[18] = 0.1333f;
+        this->monkIdleFrameTable[19] = 0.1f;
+        this->monkIdleFrameTable[20] = 0.1667f;
+        this->monkIdleFrameTable[21] = 0.0333f;
+        this->monkIdleFrameTable[22] = 0.0f;
+        this->monkIdleFrameTable[23] = 0.0333f;
 
         // Delay Effect Initialization
         this->delayBufferSize = 20000;
@@ -1398,57 +1403,6 @@ namespace Core {
     float DelayLamaAudio::getRandomFloat() {
         this->rngState = this->rngState * 1664525 + 1013904223;
         return (float)this->rngState * this->rngScale;
-    }
-
-    // FUNCTION: DELAYLAMA 0x10002440
-    void DelayLamaAudio::constructPresetArray(Preset* context, int stride, int iterationCount,
-                                             void* callback, void* extra) {
-        bool successFlag = false;
-        int i = 0;
-
-        __try {
-            for (i = 0; i < iterationCount; ++i) {
-                // Execute forward member-function callback
-                typedef void (*CallbackType)(void*);
-                ((CallbackType)callback)(context);
-
-                // Advance pointer by byte stride
-                context = (Preset*)((char*)context + stride);
-            }
-
-            // If the loop finished completely without throwing an exception
-            successFlag = true;
-        }
-        __finally {
-            // The compiler handles structured exception winding here
-            handlePresetArrayConstructionException(context, stride, i, extra, successFlag);
-        }
-    }
-
-    void DelayLamaAudio::handlePresetArrayConstructionException(void* context, int stride,
-                                                 int processedCount,
-                                                 void* extra, bool successFlag) {
-        if (!successFlag) {
-            destructPresetArrayElements(context, stride, processedCount, extra);
-        }
-    }
-
-    void DelayLamaAudio::destructPresetArrayElements(void* startPtr, int step,
-                                                    int count, void* callback) {
-        // 'DEC count' followed by 'JS' (Jump if Sign) means it checks if count < 0 AFTER decrementing
-        while (--count >= 0) {
-            // Move pointer backward by the stride
-            startPtr = (void*)((char*)startPtr - step);
-
-            // Execute the cleanup callback
-            typedef void (*DestructorCall)(void*);
-            ((DestructorCall)callback)(startPtr);
-        }
-    }
-
-    void DelayLamaAudio::presetElementConstructor() {
-        // Empty stub matching original EditorBase::generic18
-        return;
     }
 
     // FUNCTION: DELAYLAMA 0x10006430

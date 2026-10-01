@@ -4,6 +4,8 @@
 namespace DelayLama {
 namespace Core {
     struct Preset {
+        Preset();
+        ~Preset();
         float portTime;
         float delay;
         float headSize;
@@ -141,11 +143,6 @@ namespace Core {
         public:
             DelayLamaAudio(DamSDK::Api::dispatchFunc hostCallback);
             ~DelayLamaAudio();
-
-            static void constructPresetArray(Preset* context, int stride, int iterationCount, void* callback, void* extra);
-            static void handlePresetArrayConstructionException(void* context, int stride, int processedCount, void* extra, bool successFlag);
-            static void destructPresetArrayElements(void* startPtr, int step, int count, void* callback);
-            static void presetElementConstructor();
 
             virtual bool getPluginName(char* outText) override;
             virtual bool getCompanyName(char* outText) override;

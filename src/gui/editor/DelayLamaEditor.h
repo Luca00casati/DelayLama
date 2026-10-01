@@ -1,6 +1,6 @@
 #pragma once
 #include "damsdk/api/EditorBase.h"
-#include "damsdk/gui/controls/Control.h"
+#include "damsdk/gui/controls/control.h"
 #include "damsdk/gui/platform/windows/Bitmap.h"
 
 // Forward declarations

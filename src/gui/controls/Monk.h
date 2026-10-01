@@ -1,5 +1,5 @@
 #pragma once
-#include "damsdk/gui/controls/Control.h"
+#include "damsdk/gui/controls/control.h"
 #include "TileGrid.h"
 
 namespace DelayLama {

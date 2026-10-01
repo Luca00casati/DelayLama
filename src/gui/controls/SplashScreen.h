@@ -1,7 +1,7 @@
 #pragma once
 #include <Windows.h>
 #include <windef.h>
-#include "damsdk/gui/controls/Control.h"
+#include "damsdk/gui/controls/control.h"
 
 namespace DelayLama {
 namespace Gui {

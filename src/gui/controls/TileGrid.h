@@ -1,5 +1,5 @@
 #pragma once
-#include "damsdk/gui/controls/Control.h"
+#include "damsdk/gui/controls/control.h"
 
 namespace DelayLama {
 namespace Gui {
