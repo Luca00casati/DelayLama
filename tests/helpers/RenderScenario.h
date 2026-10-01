@@ -98,13 +98,18 @@ namespace RenderScenario {
         { 60, 2, 0.1f },   // Delay
     };
 
+    // Called once the plugin is switched on, before the first block is processed.
+    typedef void (*SetupHook)(Plugin* plugin);
+
     // Opens the plugin, plays the scenario and returns interleaved stereo samples.
-    inline std::vector<float> render(Plugin* plugin) {
+    inline std::vector<float> render(Plugin* plugin, SetupHook afterSetup = 0) {
         std::vector<float> out;
         plugin->dispatcher(plugin, 0, 0, 0, 0, 0.0f);                     // effOpen
         plugin->dispatcher(plugin, 10, 0, 0, 0, (float)kSampleRate);      // effSetSampleRate
         plugin->dispatcher(plugin, 11, 0, kBlockSize, 0, 0.0f);           // effSetBlockSize
         plugin->dispatcher(plugin, 12, 0, 1, 0, 0.0f);                    // effMainsChanged (on)
+        if (afterSetup)
+            afterSetup(plugin);
 
         std::vector<float> left(kBlockSize), right(kBlockSize);
         std::vector<float> inL(kBlockSize, 0.0f), inR(kBlockSize, 0.0f);

@@ -4,6 +4,7 @@
 #include <cstdlib>
 #include <string>
 #include <vector>
+#include "core/DelayLamaAudio.h"
 #include "damsdk/api/DamPlugin.h"
 #include "RenderScenario.h"
 
@@ -33,11 +34,20 @@ static std::vector<float> loadReference() {
     return samples;
 }
 
+// The original never initialises the random generator's state (only getRandomFloat
+// touches it), so its vibrato randomness starts from whatever the heap held. A fresh
+// allocation is normally zero, as it was when the reference was rendered; a
+// Visual Studio Debug build fills new memory with 0xCD instead.
+static void resetRandomState(RenderScenario::Plugin* plugin) {
+    DamSDK::Api::AudioBase* base = (DamSDK::Api::AudioBase*)((DamSDK::Api::DamPlugin*)plugin)->object;
+    static_cast<DelayLama::Core::DelayLamaAudio*>(base)->rngState = 0;
+}
+
 static std::vector<float> renderThisBuild() {
     DamSDK::Api::DamPlugin* plugin = VSTPluginMain((DamSDK::Api::dispatchFunc)&RenderScenario::hostCallback);
     if (!plugin)
         return std::vector<float>();
-    std::vector<float> samples = RenderScenario::render((RenderScenario::Plugin*)plugin);
+    std::vector<float> samples = RenderScenario::render((RenderScenario::Plugin*)plugin, &resetRandomState);
 
     // Set DELAYLAMA_RENDER_OUT to keep this build's output for listening or analysis.
     if (const char* path = std::getenv("DELAYLAMA_RENDER_OUT")) {
