@@ -3,7 +3,6 @@
 #include <fstream>
 #include <string>
 #include <cmath>
-#include <algorithm>
 #include <limits>
 #include <vector>
 #include "core/DelayLamaAudio.h"
@@ -37,7 +36,9 @@ static bool sameFloat(float actual, float expected) {
         return true;  // not recorded in the fixture
     // Relative tolerance: the reference values come from the original build,
     // so the last bits of large values can differ between compilers.
-    return std::abs(actual - expected) <= kEps * std::max(1.0f, std::abs(expected));
+    // (no std::max: <windows.h> defines a max macro under MSVC)
+    float scale = std::abs(expected) > 1.0f ? std::abs(expected) : 1.0f;
+    return std::abs(actual - expected) <= kEps * scale;
 }
 
 class DelayLamaAudioInitTest : public ::testing::Test {
