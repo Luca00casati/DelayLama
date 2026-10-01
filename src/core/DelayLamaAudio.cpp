@@ -21,7 +21,7 @@ namespace Core {
         Utils::log("DelayLamaAudio::ctor\n");
         this->synthesisBuffer = nullptr;
         this->excitationBuffer = nullptr;
-        this->formantTable = nullptr;
+        this->decayTable = nullptr;
         this->glottalSource = nullptr;
         this->harmonicBuffer = nullptr;
         this->sineTable = nullptr;
@@ -54,7 +54,7 @@ namespace Core {
         this->prevSampleRate = 0.0f;
         this->pluginSampleRate = 0.0f;
         this->curVowelValue = 0.5f;
-        this->vibratoDepthCurrent = 0.0f;
+        this->padPitchSlider = 0.0f;
         this->monkSprite = 0.1667f;
     }
 
@@ -80,9 +80,9 @@ namespace Core {
             delete[] this->sineTable;
             this->sineTable = nullptr;
         }
-        if (this->formantTable != nullptr) {
-            delete[] this->formantTable;
-            this->formantTable = nullptr;
+        if (this->decayTable != nullptr) {
+            delete[] this->decayTable;
+            this->decayTable = nullptr;
         }
         if (this->vocalEnvelope != nullptr) {
             delete[] this->vocalEnvelope;
@@ -165,8 +165,8 @@ namespace Core {
             if (this->sineTable != nullptr) {
                 delete[] this->sineTable;
             }
-            if (this->formantTable != nullptr) {
-                delete[] this->formantTable;
+            if (this->decayTable != nullptr) {
+                delete[] this->decayTable;
             }
             if (this->vocalEnvelope != nullptr) {
                 delete[] this->vocalEnvelope;
@@ -199,7 +199,7 @@ namespace Core {
             // Nullify all dangling pointers
             this->synthesisBuffer = nullptr;
             this->excitationBuffer = nullptr;
-            this->formantTable = nullptr;
+            this->decayTable = nullptr;
             this->glottalSource = nullptr;
             this->harmonicBuffer = nullptr;
             this->sineTable = nullptr;
@@ -229,18 +229,18 @@ namespace Core {
             this->excitationBuffer[i] = 0.0f;
         }
 
-        // Generate Formant Table
-        this->formantTableSize = this->numSamples << 2;
-        if (this->formantTable == nullptr) {
-            this->formantTable = new float[this->formantTableSize];
+        // Exponential decay table, shared by the three formants
+        this->decayTableSize = this->numSamples << 2;
+        if (this->decayTable == nullptr) {
+            this->decayTable = new float[this->decayTableSize];
         }
 
         float decayFactor = (float)(kPi50 / this->pluginSampleRate);
-        int tableSize = this->formantTableSize;
+        int tableSize = this->decayTableSize;
 
-        if (this->formantTable != nullptr) {
+        if (this->decayTable != nullptr) {
             for (i = 0; i < tableSize; ++i) {
-                this->formantTable[i] = (float)::exp(-i * decayFactor);
+                this->decayTable[i] = (float)::exp(-i * decayFactor);
             }
         }
 
@@ -267,8 +267,8 @@ namespace Core {
         double envPhase1 = 0.0;
         for (i = 0; i < this->numSamples; ++i) {
             double phase = i * 6.283185307;
-            this->harmonicBuffer[i] = (float)sin(phase / (this->pluginSampleRate * 0.00020202021f)) * this->formantTable[(long)envPhase1];
-            this->harmonicBuffer[i] += (float)sin(phase / (this->pluginSampleRate * 0.00026315788f)) * this->formantTable[(long)envPhase2];
+            this->harmonicBuffer[i] = (float)sin(phase / (this->pluginSampleRate * 0.00020202021f)) * this->decayTable[(long)envPhase1];
+            this->harmonicBuffer[i] += (float)sin(phase / (this->pluginSampleRate * 0.00026315788f)) * this->decayTable[(long)envPhase2];
             envPhase1 += 3.0f;
             envPhase2 += 3.6f;
         }
@@ -432,27 +432,27 @@ namespace Core {
 
         // General Synthesizer States & Smoothing Variables Reset
         this->synthesisFrameCounter = 0;
-        this->pitchBase = 64;
-        this->pitchTargetRaw = 64;
+        this->vowelBendLsb = 64;
+        this->vowelBendMsb = 64;
         this->vowelTargetValue = 0.5f;
-        this->pitchTargetDirty = false;
+        this->vowelBendDirty = false;
         this->isGlideActive = false;
         this->isSinging = false;
-        this->formantTableNeedsUpdate = true;
+        this->vowelBufferNeedsUpdate = true;
         this->currentMidiEventData1 = 0;
         this->currentMidiEventData2 = 1;
         this->outputGain = 0.1f;
-        this->pitchValueDirty = false;
-        this->vibratoDirty = false;
+        this->padVowelDirty = false;
+        this->padPitchDirty = false;
 
         synthesizeVowelBuffer(0.5f);
 
         this->prevVowelValue = 0.5;
         this->isGateActive = false;
-        this->currentFormantMorphValue = 36.0;
-        this->lfoPhaseWrapValue = 4.0;
-        this->lfoDepth = 0.0;
-        this->lfoSampleValue = 0.0;
+        this->voicePitch = 36.0;
+        this->lfoRate = 4.0;
+        this->vibratoDepth = 0.0;
+        this->vibratoOffset = 0.0;
         this->lfoPhaseAccumulator = 0.0;
         this->lfoPhaseIncrement = this->pluginSampleRate / (float)this->sineTableSize;
 
@@ -472,9 +472,9 @@ namespace Core {
         this->stopBlink2 = idleSamplesPerFrame * 17;
         this->startIdleAnimation = idleSamplesPerFrame * 23;
 
-        this->writeIndex = 0;
+        this->pulseWriteIndex = 0;
         this->excitationReadIndex = 0;
-        this->excitationWriteIndex = 0;
+        this->samplesSincePulse = 0;
         this->sampleCounter = 0;
 
         // Delay Line setup
@@ -489,11 +489,11 @@ namespace Core {
         this->smoothCounter = (int)(this->sampleRate * 0.0099999998);         // Effectively sampleRate * 0.01
         this->smoothingFrames = this->totalSmoothingFrames / this->smoothCounter;
 
-        this->pitchCurrent = kPitchBendCenter; // Assuming this is 8192 (0x2000) based on '00 20 00 00'
-        this->vibratoCurrent = 36.0;
+        this->vowelCurrent = kPitchBendCenter; // Assuming this is 8192 (0x2000) based on '00 20 00 00'
+        this->padPitchCurrent = 36.0;
         this->smoothStep = 0;
-        this->pitchSmoothingFramesRemaining = 0;
-        this->vibratoSmoothingFramesRemaining = 0;
+        this->vowelSmoothingFramesRemaining = 0;
+        this->padPitchSmoothingFramesRemaining = 0;
     }
 
 #define kPitchScaleFactor ((float)(16384.0f))
@@ -511,10 +511,10 @@ namespace Core {
         this->midiEventReadIndex = 0;
 
         // Keep the excitation buffer write index within the buffer
-        if (this->excitationWriteIndex >= this->excitationBufferSize)
-            this->excitationWriteIndex -= this->excitationBufferSize;
-        if (this->excitationWriteIndex < 0)
-            this->excitationWriteIndex += this->excitationBufferSize;
+        if (this->samplesSincePulse >= this->excitationBufferSize)
+            this->samplesSincePulse -= this->excitationBufferSize;
+        if (this->samplesSincePulse < 0)
+            this->samplesSincePulse += this->excitationBufferSize;
 
         // Control rate: MIDI, parameter smoothing, animation, LFO and voice synthesis
         frames = sampleFrames;
@@ -522,54 +522,54 @@ namespace Core {
         {
             this->dispatchMidiEvents(sampleIdx, sampleFrames);
 
-            // Pitch bend
-            if (this->pitchTargetDirty == true)
+            // MIDI pitch bend controls the vowel
+            if (this->vowelBendDirty == true)
             {
-                this->pitchTargetDirty = false;
-                this->pitchTarget = this->pitchTargetRaw * 128 + this->pitchBase;
-                this->pitchDelta = this->pitchTarget - this->pitchCurrent;
-                this->pitchStep = (float)(this->pitchDelta / this->smoothingFrames);
-                this->pitchSmoothingFramesRemaining = this->smoothingFrames;
+                this->vowelBendDirty = false;
+                this->vowelTarget = this->vowelBendMsb * 128 + this->vowelBendLsb;
+                this->vowelDelta = this->vowelTarget - this->vowelCurrent;
+                this->vowelStep = (float)(this->vowelDelta / this->smoothingFrames);
+                this->vowelSmoothingFramesRemaining = this->smoothingFrames;
             }
 
-            // Pitch parameter changed
-            if (this->pitchValueDirty == true)
+            // Vowel from the singing pad
+            if (this->padVowelDirty == true)
             {
-                this->pitchValueDirty = false;
-                this->pitchTarget = (long)(this->pitchValue * kPitchScaleFactor);
-                this->pitchDelta = this->pitchTarget - this->pitchCurrent;
-                this->pitchStep = (float)(this->pitchDelta / this->smoothingFrames);
-                this->pitchSmoothingFramesRemaining = this->smoothingFrames;
+                this->padVowelDirty = false;
+                this->vowelTarget = (long)(this->padVowel * kPitchScaleFactor);
+                this->vowelDelta = this->vowelTarget - this->vowelCurrent;
+                this->vowelStep = (float)(this->vowelDelta / this->smoothingFrames);
+                this->vowelSmoothingFramesRemaining = this->smoothingFrames;
             }
 
-            // Vibrato parameter changed
-            if (this->vibratoDirty == true)
+            // Pitch from the singing pad: 36..48 (one octave)
+            if (this->padPitchDirty == true)
             {
-                this->vibratoDirty = false;
-                this->vibratoTarget = this->vibratoAmount * 12.0f + 36.0f;
-                this->vibratoDelta = this->vibratoTarget - this->vibratoCurrent;
-                this->vibratoStep = this->vibratoDelta / this->smoothingFrames;
-                this->vibratoSmoothingFramesRemaining = this->smoothingFrames;
+                this->padPitchDirty = false;
+                this->padPitchTarget = this->padPitch * 12.0f + 36.0f;
+                this->padPitchDelta = this->padPitchTarget - this->padPitchCurrent;
+                this->padPitchStep = this->padPitchDelta / this->smoothingFrames;
+                this->padPitchSmoothingFramesRemaining = this->smoothingFrames;
             }
 
             // Parameter smoothing
             if (this->smoothStep >= this->smoothCounter)
             {
                 this->smoothStep = 0;
-                if (this->pitchSmoothingFramesRemaining > 0)
+                if (this->vowelSmoothingFramesRemaining > 0)
                 {
-                    this->pitchSmoothingFramesRemaining--;
-                    this->pitchCurrent += (long)this->pitchStep;
-                    this->curVowelValue = this->pitchCurrent * kPitchToFloatScale;
+                    this->vowelSmoothingFramesRemaining--;
+                    this->vowelCurrent += (long)this->vowelStep;
+                    this->curVowelValue = this->vowelCurrent * kPitchToFloatScale;
                     this->setParameterValue(SingingVerticalSliderParameterId, this->curVowelValue);
                 }
-                if (this->vibratoSmoothingFramesRemaining > 0)
+                if (this->padPitchSmoothingFramesRemaining > 0)
                 {
-                    this->vibratoSmoothingFramesRemaining--;
-                    this->vibratoCurrent = this->vibratoStep + this->vibratoCurrent;
-                    this->vibratoDepthCurrent = (this->vibratoCurrent - 36.0f) * 0.083333336f;
-                    this->setParameterValue(SingingHorizontalSliderParameterId, this->vibratoDepthCurrent);
-                    this->pitchTargetValue = this->vibratoCurrent;
+                    this->padPitchSmoothingFramesRemaining--;
+                    this->padPitchCurrent = this->padPitchStep + this->padPitchCurrent;
+                    this->padPitchSlider = (this->padPitchCurrent - 36.0f) * 0.083333336f;
+                    this->setParameterValue(SingingHorizontalSliderParameterId, this->padPitchSlider);
+                    this->notePitch = this->padPitchCurrent;
                 }
             }
 
@@ -586,54 +586,54 @@ namespace Core {
                 // Portamento: glide the pitch towards its target
                 if (this->isGateActive)
                 {
-                    if (this->pitchTargetValue + 0.2f < this->formantMorphValue)
-                        this->formantMorphStep = -12.0f / ((this->portamentoTime + 0.01f) * this->pluginSampleRate);
-                    else if (this->pitchTargetValue - 0.2f > this->formantMorphValue)
-                        this->formantMorphStep = 12.0f / ((this->portamentoTime + 0.01f) * this->pluginSampleRate);
+                    if (this->notePitch + 0.2f < this->glidePitch)
+                        this->glideStep = -12.0f / ((this->portamentoTime + 0.01f) * this->pluginSampleRate);
+                    else if (this->notePitch - 0.2f > this->glidePitch)
+                        this->glideStep = 12.0f / ((this->portamentoTime + 0.01f) * this->pluginSampleRate);
                     else
                     {
-                        this->formantMorphValue = this->pitchTargetValue;
-                        this->formantMorphStep = 0;
+                        this->glidePitch = this->notePitch;
+                        this->glideStep = 0;
                     }
-                    this->formantMorphValue = this->formantMorphValue + this->formantMorphStep;
+                    this->glidePitch = this->glidePitch + this->glideStep;
                 }
                 else
                 {
-                    this->formantMorphValue = this->pitchTargetValue;
+                    this->glidePitch = this->notePitch;
                 }
 
-                // LFO (pitch wobble)
-                this->currentFormantMorphValue = this->formantMorphValue;
+                // Vibrato (mod wheel): a sine LFO at a slightly random rate
+                this->voicePitch = this->glidePitch;
                 if (this->sineTableSize <= this->lfoPhaseAccumulator)
                     this->lfoPhaseAccumulator = this->lfoPhaseAccumulator - this->sineTableSize;
                 if (this->sampleCounter >= this->lfoReseedIntervalSamples)
                 {
                     this->sampleCounter = 0;
                     float random = this->getRandomFloat();
-                    this->lfoPhaseWrapValue = random + random + 5.0f;
+                    this->lfoRate = random + random + 5.0f;
                 }
-                this->lfoSampleValue = (this->lfoDepth + 0.2f) * this->sineTable[(long)this->lfoPhaseAccumulator];
-                this->lfoPhaseAccumulator = (this->lfoDepth * 0.2f + 1.0f) * this->lfoPhaseWrapValue / this->lfoPhaseIncrement + this->lfoPhaseAccumulator;
-                this->currentFormantMorphValue = this->lfoSampleValue + this->currentFormantMorphValue;
+                this->vibratoOffset = (this->vibratoDepth + 0.2f) * this->sineTable[(long)this->lfoPhaseAccumulator];
+                this->lfoPhaseAccumulator = (this->vibratoDepth * 0.2f + 1.0f) * this->lfoRate / this->lfoPhaseIncrement + this->lfoPhaseAccumulator;
+                this->voicePitch = this->vibratoOffset + this->voicePitch;
 
                 // Fundamental frequency and period of the current note
-                this->frequencyValue = this->frequencyTable[-(long)(this->currentFormantMorphValue * -32.0f)];
-                this->frequencyIndex = (long)(this->pluginSampleRate / this->frequencyValue);
+                this->voiceFrequency = this->frequencyTable[-(long)(this->voicePitch * -32.0f)];
+                this->periodSamples = (long)(this->pluginSampleRate / this->voiceFrequency);
 
                 // Start the next glottal pulse once a full period has been written
-                if (this->excitationWriteIndex >= this->frequencyIndex || this->formantTableNeedsUpdate)
+                if (this->samplesSincePulse >= this->periodSamples || this->vowelBufferNeedsUpdate)
                 {
-                    if (this->formantTableNeedsUpdate)
+                    if (this->vowelBufferNeedsUpdate)
                         this->synthesizeVowelBuffer(this->curVowelValue);
-                    this->addSynthesisToExcitation(this->excitationWriteIndex);
-                    this->excitationWriteIndex = 0;
-                    this->formantTableNeedsUpdate = false;
+                    this->addSynthesisToExcitation(this->samplesSincePulse);
+                    this->samplesSincePulse = 0;
+                    this->vowelBufferNeedsUpdate = false;
                 }
             }
             else
             {
                 // Idle: blink twice, then play the idle animation
-                this->formantTableNeedsUpdate = true;
+                this->vowelBufferNeedsUpdate = true;
                 if (this->idleAnimationSampleCounter == this->startBlink1)
                     this->setParameterValue(MonkSpriteParameterId, closeEyes);
                 if (this->idleAnimationSampleCounter == this->stopBlink1)
@@ -659,7 +659,7 @@ namespace Core {
             this->sampleCounter++;
             this->idleAnimationSampleCounter++;
             this->globalAnimationSampleCounter++;
-            this->excitationWriteIndex++;
+            this->samplesSincePulse++;
             this->synthesisFrameCounter++;
             sampleIdx++;
             this->smoothStep++;
@@ -690,9 +690,9 @@ namespace Core {
             this->delayWriteIndex++;
 
             // The output gain depends slightly on the pitch
-            outLeft[i] = (this->excitationBuffer[this->excitationReadIndex] + this->stereoDelayLBuffer[this->delayReadIndexL]) * (((float)(this->formantMorphValue * -0.013888889f) + 2.0f) * this->outputGain);
+            outLeft[i] = (this->excitationBuffer[this->excitationReadIndex] + this->stereoDelayLBuffer[this->delayReadIndexL]) * (((float)(this->glidePitch * -0.013888889f) + 2.0f) * this->outputGain);
             this->delayReadIndexL++;
-            outRight[i] = (this->excitationBuffer[this->excitationReadIndex] + this->stereoDelayRBuffer[this->delayReadIndexR]) * (((float)(this->formantMorphValue * -0.013888889f) + 2.0f) * this->outputGain);
+            outRight[i] = (this->excitationBuffer[this->excitationReadIndex] + this->stereoDelayRBuffer[this->delayReadIndexR]) * (((float)(this->glidePitch * -0.013888889f) + 2.0f) * this->outputGain);
             this->delayReadIndexR++;
 
             this->excitationBuffer[this->excitationReadIndex] = 0;
@@ -710,9 +710,9 @@ namespace Core {
                 this->portamentoTime = value;
                 break;
             }
-            case SingingHorizontalSliderParameterId: // Vibrato Depth
+            case SingingHorizontalSliderParameterId: // Pitch indicator next to the pad
             {
-                this->vibratoDepthCurrent = value;
+                this->padPitchSlider = value;
                 break;
             }
             case SingingVerticalSliderParameterId: // Vowel
@@ -780,10 +780,10 @@ namespace Core {
                 }
                 break;
             }
-            case VibratoAmountParameterId: // MIDI CC
+            case PadPitchParameterId: // MIDI CC
             {
-                this->vibratoDirty = true;
-                this->vibratoAmount = value;
+                this->padPitchDirty = true;
+                this->padPitch = value;
 
                 const int midiValue = static_cast<int>(value * 127.0f);
                 this->midiDataValue = midiValue;
@@ -791,10 +791,10 @@ namespace Core {
                 sendMidiToHost(0xB0, 0x0B, midiValue);
                 break;
             }
-            case PitchValueParameterId: // Pitch Bend
+            case PadVowelParameterId: // Vowel from the pad, sent to the host as pitch bend
             {
-                this->pitchValueDirty = true;
-                this->pitchValue = value;
+                this->padVowelDirty = true;
+                this->padVowel = value;
 
                 const int midiValue = static_cast<int>(value * 127.0f);
                 this->midiDataValue = midiValue;
@@ -936,7 +936,7 @@ namespace Core {
                 value = this->monkSprite;
                 break;
             case SingingHorizontalSliderParameterId:
-                value = this->vibratoDepthCurrent;
+                value = this->padPitchSlider;
                 break;
         }
         return value;
@@ -1098,16 +1098,16 @@ namespace Core {
                     this->handleControlChange(this->currentMidiEventData1, this->currentMidiEventData2);
                 }
                 else if (status == 0xe0) {
-                    // Pitch bend
+                    // Pitch bend (controls the vowel)
                     if (sampleIdx != 0) {
-                        this->pitchBase = this->midiQueue[this->midiEventReadIndex].data1 & 0x7f;
-                        this->pitchTargetDirty = true;
-                        this->pitchTargetRaw = this->midiQueue[this->midiEventReadIndex].data2 & 0x7f;
+                        this->vowelBendLsb = this->midiQueue[this->midiEventReadIndex].data1 & 0x7f;
+                        this->vowelBendDirty = true;
+                        this->vowelBendMsb = this->midiQueue[this->midiEventReadIndex].data2 & 0x7f;
                     }
                     else {
                         // Bends at the start of the buffer are spread across it below.
-                        this->pitchInterpData1[pitchInterpCount] = this->midiQueue[this->midiEventReadIndex].data1 & 0x7f;
-                        this->pitchInterpData2[pitchInterpCount] = this->midiQueue[this->midiEventReadIndex].data2 & 0x7f;
+                        this->bendQueueLsb[pitchInterpCount] = this->midiQueue[this->midiEventReadIndex].data1 & 0x7f;
+                        this->bendQueueMsb[pitchInterpCount] = this->midiQueue[this->midiEventReadIndex].data2 & 0x7f;
                         pitchInterpCount++;
                     }
                 }
@@ -1121,44 +1121,44 @@ namespace Core {
             } while (this->midiQueue[this->midiEventReadIndex].timestamp == sampleIdx);
 
             if (pitchInterpCount != 0) {
-                this->isInterpActive = 1;
-                this->interpEventCount = pitchInterpCount;
-                this->interpCurrentIdx = 0;
-                this->interpSampleStep = (sampleFrame - 2) / pitchInterpCount;
+                this->nextBendSample = 1;
+                this->bendQueueCount = pitchInterpCount;
+                this->bendQueueIndex = 0;
+                this->bendQueueSpacing = (sampleFrame - 2) / pitchInterpCount;
             }
         }
 
         // Pitch bends from the start of the buffer are applied one by one, spread
-        // evenly across it (isInterpActive holds the sample of the next one)
-        if (sampleIdx == this->isInterpActive && sampleIdx != 0 && this->interpCurrentIdx < this->interpEventCount) {
-            this->pitchBase = this->pitchInterpData1[this->interpCurrentIdx];
-            this->pitchTargetRaw = this->pitchInterpData2[this->interpCurrentIdx];
-            this->interpCurrentIdx++;
-            this->pitchTargetDirty = true;
-            this->isInterpActive += this->interpSampleStep;
+        // evenly across it (nextBendSample holds the sample of the next one)
+        if (sampleIdx == this->nextBendSample && sampleIdx != 0 && this->bendQueueIndex < this->bendQueueCount) {
+            this->vowelBendLsb = this->bendQueueLsb[this->bendQueueIndex];
+            this->vowelBendMsb = this->bendQueueMsb[this->bendQueueIndex];
+            this->bendQueueIndex++;
+            this->vowelBendDirty = true;
+            this->nextBendSample += this->bendQueueSpacing;
         }
     }
 
     // FUNCTION: DELAYLAMA 0x10005eb0
     void DelayLamaAudio::addSynthesisToExcitation(int offsetIncrement) {
         // Mix the synthesised pulse into the excitation ring buffer at the write position
-        this->writeIndex += offsetIncrement;
-        if (this->writeIndex + this->numSamples > this->excitationBufferSize || this->writeIndex < 0) {
+        this->pulseWriteIndex += offsetIncrement;
+        if (this->pulseWriteIndex + this->numSamples > this->excitationBufferSize || this->pulseWriteIndex < 0) {
             for (int i = 0; i < this->numSamples; i++) {
-                while (this->writeIndex >= this->excitationBufferSize)
-                    this->writeIndex -= this->excitationBufferSize;
-                while (this->writeIndex < 0)
-                    this->writeIndex += this->excitationBufferSize;
-                this->excitationBuffer[this->writeIndex] += this->synthesisBuffer[i];
-                this->writeIndex++;
+                while (this->pulseWriteIndex >= this->excitationBufferSize)
+                    this->pulseWriteIndex -= this->excitationBufferSize;
+                while (this->pulseWriteIndex < 0)
+                    this->pulseWriteIndex += this->excitationBufferSize;
+                this->excitationBuffer[this->pulseWriteIndex] += this->synthesisBuffer[i];
+                this->pulseWriteIndex++;
             }
         } else {
             for (int i = 0; i < this->numSamples; i++) {
-                this->excitationBuffer[this->writeIndex] += this->synthesisBuffer[i];
-                this->writeIndex++;
+                this->excitationBuffer[this->pulseWriteIndex] += this->synthesisBuffer[i];
+                this->pulseWriteIndex++;
             }
         }
-        this->writeIndex -= this->numSamples;
+        this->pulseWriteIndex -= this->numSamples;
     }
 
 #define kTableIndexMax ((float)(1279.0f))
@@ -1173,7 +1173,7 @@ namespace Core {
 
         // resonanceGain widens/narrows all 3 formant rates together based on head size
         float resonanceGain = (float)(this->headSize * 0.5 + 0.75);
-        this->vowelBlendFactor = resonanceGain;
+        this->headSizeScale = resonanceGain;
 
         // Convert vowel index to integer for the formant frequency table lookup
         int tableIndex = static_cast<int>(vowelIndex);
@@ -1205,7 +1205,7 @@ namespace Core {
         for (int i = 0; i < this->numSamples; ++i) {
             // Formant 1 (F1)
             this->synthesisBuffer[i] = this->glottalSource[static_cast<int>(glotPhase1)] *
-                                        this->formantTable[static_cast<int>(envPhase1)];
+                                        this->decayTable[static_cast<int>(envPhase1)];
             envPhase1 += this->formant1Bandwidth;
             glotPhase1 += glotStep1;
             if (glotPhase1 >= this->glottalTableSize) {
@@ -1214,7 +1214,7 @@ namespace Core {
 
             // Formant 2 (F2)
             this->synthesisBuffer[i] += this->glottalSource[static_cast<int>(glotPhase2)] *
-                                         this->formantTable[static_cast<int>(envPhase2)];
+                                         this->decayTable[static_cast<int>(envPhase2)];
             envPhase2 += this->formant2Bandwidth;
             glotPhase2 += glotStep2;
             if (glotPhase2 >= this->glottalTableSize) {
@@ -1223,7 +1223,7 @@ namespace Core {
 
             // Formant 3 (F3)
             this->synthesisBuffer[i] += this->glottalSource[static_cast<int>(glotPhase3)] *
-                                         this->formantTable[static_cast<int>(envPhase3)];
+                                         this->decayTable[static_cast<int>(envPhase3)];
             envPhase3 += this->formant3Bandwidth;
             glotPhase3 += glotStep3;
             if (glotPhase3 >= this->glottalTableSize) {
@@ -1291,7 +1291,7 @@ namespace Core {
         }
 
         int activeNote = this->noteStack[0];
-        this->pitchTargetValue = (float)activeNote;
+        this->notePitch = (float)activeNote;
         this->isSinging = activeNote != 0;
 
         if (activeNote == 0) {
@@ -1309,7 +1309,7 @@ namespace Core {
         Utils::logf("DelayLamaAudio::handleControlChange cc=%d value=%d\n", midiData1, midiData2);
         // Modulation Wheel
         if (midiData1 == 1) {
-          this->lfoDepth = (float)midiData2 * 0.007874016f;
+          this->vibratoDepth = (float)midiData2 * 0.007874016f;
           return;
         }
 
@@ -1327,10 +1327,10 @@ namespace Core {
           return;
         }
 
-        // Expression
+        // Pitch from the pad (the plugin sends it as controller 11)
         if (midiData1 == 0xb) {
-          this->vibratoDirty = true;
-          this->vibratoAmount = (float)midiData2 * 0.007874016f;
+          this->padPitchDirty = true;
+          this->padPitch = (float)midiData2 * 0.007874016f;
           return;
         }
 

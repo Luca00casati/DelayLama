@@ -65,15 +65,15 @@ namespace Gui{
             case TwoAxisSliderParameterId:
             {
                 // The singing pad reports several things through one value:
-                // -2..3 the vibrato amount, 98..103 the pitch (100 + inverted pitch),
+                // -2..3 the pitch (x axis), 98..103 the vowel (100 + inverted y),
                 // 200 / 201 singing off / on.
                 float value = control->getValue();
                 if (-2.0f < value && value < 3.0f)
-                    this->mainPlugin->setParameterValue(VibratoAmountParameterId, value);
+                    this->mainPlugin->setParameterValue(PadPitchParameterId, value);
 
                 if (98.0f < value && value < 103.0f) {
                     value = (float)((value - 100.0f) * -1.0f) + 1.0f;
-                    this->mainPlugin->setParameterValue(PitchValueParameterId, value);
+                    this->mainPlugin->setParameterValue(PadVowelParameterId, value);
                 }
 
                 if (value == 200.0f)

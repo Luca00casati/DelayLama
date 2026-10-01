@@ -10,6 +10,6 @@
 #define MonkSpriteParameterId 6
 #define SingingEnabledParameterId 9
 #define TwoAxisSliderParameterId 7
-#define PitchValueParameterId 10
-#define VibratoAmountParameterId 11
+#define PadVowelParameterId 10
+#define PadPitchParameterId 11
 #define SplashScreenParameterId 12

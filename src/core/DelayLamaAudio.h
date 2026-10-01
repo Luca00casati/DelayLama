@@ -21,11 +21,11 @@ namespace Core {
             float delay; // 0xbc
             float monkSprite; // 0xc0
             float headSize; // 0xc4
-            float vibratoDepthCurrent; // 0xc8
-            float vibratoAmount; // 0xcc
-            float pitchValue; // 0xd0
-            bool vibratoDirty; // 0xd4
-            bool pitchValueDirty; // 0xd5
+            float padPitchSlider; // 0xc8
+            float padPitch; // 0xcc
+            float padVowel; // 0xd0
+            bool padPitchDirty; // 0xd4
+            bool padVowelDirty; // 0xd5
             char unusedBytes00[2]; // 0xd6
             Preset* presets;// 0xd8
 
@@ -37,42 +37,42 @@ namespace Core {
             int32_t midiDataValue; // 0x4110
             int currentMidiEventData1; // 0x4114
             int currentMidiEventData2; // 0x4118
-            int pitchBase; //A midi note // 0x411c
-            int pitchTargetRaw; //A midi note // 0x4120
+            int vowelBendLsb; //A midi note // 0x411c
+            int vowelBendMsb; //A midi note // 0x4120
             float outputGain; // 0x4124
-            int pitchInterpData1[1024]; // 0x4128
-            int pitchInterpData2[1024]; // 0x5128
-            int isInterpActive; // 0x6128
-            int interpEventCount; // 0x612c
-            int interpSampleStep; // 0x6130
-            int interpCurrentIdx; // 0x6134
+            int bendQueueLsb[1024]; // 0x4128
+            int bendQueueMsb[1024]; // 0x5128
+            int nextBendSample; // 0x6128
+            int bendQueueCount; // 0x612c
+            int bendQueueSpacing; // 0x6130
+            int bendQueueIndex; // 0x6134
             int synthesisFrameCounter; // 0x6138
             float vowelTargetValue; // 0x613c
-            bool pitchTargetDirty; // 0x6140
+            bool vowelBendDirty; // 0x6140
             bool isGlideActive; // 0x6141
-            bool formantTableNeedsUpdate; // 0x6142
+            bool vowelBufferNeedsUpdate; // 0x6142
             bool unusedBool; // 0x6143
-            float pitchTargetValue; // 0x6144
-            float formantMorphStep; // 0x6148
-            float formantMorphValue; // 0x614c
+            float notePitch; // 0x6144
+            float glideStep; // 0x6148
+            float glidePitch; // 0x614c
             bool isGateActive; // 0x6150
             char unusedBytes04[3]; // 0x6151
-            float currentFormantMorphValue; // 0x6154
+            float voicePitch; // 0x6154
             float lfoPhaseAccumulator; // 0x6158
-            float lfoPhaseWrapValue; // 0x615c
-            float lfoDepth; // 0x6160
-            float lfoSampleValue; // 0x6164
+            float lfoRate; // 0x615c
+            float vibratoDepth; // 0x6160
+            float vibratoOffset; // 0x6164
             float lfoPhaseIncrement; // 0x6168
             int lfoReseedIntervalSamples; // 0x616c
             int sampleCounter; // 0x6170
             bool isSinging; // 0x6174
             char unusedBytes05[3]; // 0x6175
             int noteStack[128]; // 0x6178
-            int writeIndex; // 0x6378
-            int frequencyIndex; // 0x637c
+            int pulseWriteIndex; // 0x6378
+            int periodSamples; // 0x637c
             float unusedFloat; // 0x6380
-            float frequencyValue; // 0x6384
-            int excitationWriteIndex; // 0x6388
+            float voiceFrequency; // 0x6384
+            int samplesSincePulse; // 0x6388
             int attackSamples; // 0x638c
             int sustainStart; // 0x6390
             int releaseSamples; // 0x6394
@@ -81,21 +81,21 @@ namespace Core {
             float formant2Bandwidth; // 0x63a0
             float formant3Bandwidth; // 0x63a4
             char unusedBytes06[8]; // 0x63a8
-            float vowelBlendFactor; // 0x63b0
+            float headSizeScale; // 0x63b0
             int totalSmoothingFrames; // 0x63b4
             int smoothCounter; // 0x63b8
             int smoothingFrames; // 0x63bc
             int smoothStep; // 0x63c0
-            int pitchCurrent; // 0x63c4
-            int pitchTarget; // 0x63c8
-            int pitchDelta; // 0x63cc
-            int pitchSmoothingFramesRemaining; // 0x63d0
-            float pitchStep; // 0x63d4
-            float vibratoCurrent; // 0x63d8
-            float vibratoTarget; // 0x63dc
-            float vibratoDelta; // 0x63e0
-            float vibratoStep; // 0x63e4
-            int vibratoSmoothingFramesRemaining; // 0x63e8
+            int vowelCurrent; // 0x63c4
+            int vowelTarget; // 0x63c8
+            int vowelDelta; // 0x63cc
+            int vowelSmoothingFramesRemaining; // 0x63d0
+            float vowelStep; // 0x63d4
+            float padPitchCurrent; // 0x63d8
+            float padPitchTarget; // 0x63dc
+            float padPitchDelta; // 0x63e0
+            float padPitchStep; // 0x63e4
+            int padPitchSmoothingFramesRemaining; // 0x63e8
             float pluginSampleRate; // 0x63ec
             float prevSampleRate; // 0x63f0
             int pluginBlockSize; // 0x63f4
@@ -127,8 +127,8 @@ namespace Core {
             int excitationReadIndex; // 0x64b4
             float* sineTable; // 0x64b8
             int sineTableSize; // 0x64bc
-            float* formantTable; // 0x64c0
-            int formantTableSize; // 0x64c4
+            float* decayTable; // 0x64c0
+            int decayTableSize; // 0x64c4
             float* vocalEnvelope; // 0x64c8
             float* glottalSource; // 0x64cc
             int glottalTableSize; // 0x64d0

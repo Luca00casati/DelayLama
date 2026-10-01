@@ -88,18 +88,18 @@ TEST_F(DelayLamaAudioInitTest, Initialize_Scalars_Floats) {
         { "prevVowelValue",           &DelayLama::Core::DelayLamaAudio::prevVowelValue           },
         { "outputGain",               &DelayLama::Core::DelayLamaAudio::outputGain               },
         { "vowelTargetValue",         &DelayLama::Core::DelayLamaAudio::vowelTargetValue         },
-        { "currentFormantMorphValue", &DelayLama::Core::DelayLamaAudio::currentFormantMorphValue },
+        { "voicePitch", &DelayLama::Core::DelayLamaAudio::voicePitch },
         { "lfoPhaseAccumulator",      &DelayLama::Core::DelayLamaAudio::lfoPhaseAccumulator      },
-        { "lfoPhaseWrapValue",        &DelayLama::Core::DelayLamaAudio::lfoPhaseWrapValue        },
-        { "lfoDepth",                 &DelayLama::Core::DelayLamaAudio::lfoDepth                 },
-        { "lfoSampleValue",           &DelayLama::Core::DelayLamaAudio::lfoSampleValue           },
+        { "lfoRate",        &DelayLama::Core::DelayLamaAudio::lfoRate        },
+        { "vibratoDepth",                 &DelayLama::Core::DelayLamaAudio::vibratoDepth                 },
+        { "vibratoOffset",           &DelayLama::Core::DelayLamaAudio::vibratoOffset           },
         { "lfoPhaseIncrement",        &DelayLama::Core::DelayLamaAudio::lfoPhaseIncrement        },
         { "vowelLookupIndex",         &DelayLama::Core::DelayLamaAudio::vowelLookupIndex         },
         { "formant1Bandwidth",        &DelayLama::Core::DelayLamaAudio::formant1Bandwidth        },
         { "formant2Bandwidth",        &DelayLama::Core::DelayLamaAudio::formant2Bandwidth        },
         { "formant3Bandwidth",        &DelayLama::Core::DelayLamaAudio::formant3Bandwidth        },
-        { "vowelBlendFactor",         &DelayLama::Core::DelayLamaAudio::vowelBlendFactor         },
-        { "vibratoCurrent",           &DelayLama::Core::DelayLamaAudio::vibratoCurrent           },
+        { "headSizeScale",         &DelayLama::Core::DelayLamaAudio::headSizeScale         },
+        { "padPitchCurrent",           &DelayLama::Core::DelayLamaAudio::padPitchCurrent           },
         { "pluginSampleRate",         &DelayLama::Core::DelayLamaAudio::pluginSampleRate         },
         { "prevSampleRate",           &DelayLama::Core::DelayLamaAudio::prevSampleRate           },
         { "delayFeedback",            &DelayLama::Core::DelayLamaAudio::delayFeedback            },
@@ -121,8 +121,8 @@ TEST_F(DelayLamaAudioInitTest, Initialize_Scalars_Ints) {
         { "synthesisFrameCounter",           &DelayLama::Core::DelayLamaAudio::synthesisFrameCounter           },
         { "lfoReseedIntervalSamples",        &DelayLama::Core::DelayLamaAudio::lfoReseedIntervalSamples        },
         { "sampleCounter",                   &DelayLama::Core::DelayLamaAudio::sampleCounter                   },
-        { "writeIndex",                      &DelayLama::Core::DelayLamaAudio::writeIndex                      },
-        { "excitationWriteIndex",            &DelayLama::Core::DelayLamaAudio::excitationWriteIndex            },
+        { "pulseWriteIndex",                      &DelayLama::Core::DelayLamaAudio::pulseWriteIndex                      },
+        { "samplesSincePulse",            &DelayLama::Core::DelayLamaAudio::samplesSincePulse            },
         { "attackSamples",                   &DelayLama::Core::DelayLamaAudio::attackSamples                   },
         { "sustainStart",                    &DelayLama::Core::DelayLamaAudio::sustainStart                    },
         { "releaseSamples",                  &DelayLama::Core::DelayLamaAudio::releaseSamples                  },
@@ -130,9 +130,9 @@ TEST_F(DelayLamaAudioInitTest, Initialize_Scalars_Ints) {
         { "smoothCounter",                   &DelayLama::Core::DelayLamaAudio::smoothCounter                   },
         { "smoothingFrames",                 &DelayLama::Core::DelayLamaAudio::smoothingFrames                 },
         { "smoothStep",                      &DelayLama::Core::DelayLamaAudio::smoothStep                      },
-        { "pitchCurrent",                    &DelayLama::Core::DelayLamaAudio::pitchCurrent                    },
-        { "pitchSmoothingFramesRemaining",   &DelayLama::Core::DelayLamaAudio::pitchSmoothingFramesRemaining   },
-        { "vibratoSmoothingFramesRemaining", &DelayLama::Core::DelayLamaAudio::vibratoSmoothingFramesRemaining },
+        { "vowelCurrent",                    &DelayLama::Core::DelayLamaAudio::vowelCurrent                    },
+        { "vowelSmoothingFramesRemaining",   &DelayLama::Core::DelayLamaAudio::vowelSmoothingFramesRemaining   },
+        { "padPitchSmoothingFramesRemaining", &DelayLama::Core::DelayLamaAudio::padPitchSmoothingFramesRemaining },
         { "currentIdleFrame",                &DelayLama::Core::DelayLamaAudio::currentIdleFrame                },
         { "idleAnimationSampleCounter",      &DelayLama::Core::DelayLamaAudio::idleAnimationSampleCounter      },
         { "globalAnimationSampleCounter",    &DelayLama::Core::DelayLamaAudio::globalAnimationSampleCounter    },
@@ -150,7 +150,7 @@ TEST_F(DelayLamaAudioInitTest, Initialize_Scalars_Ints) {
         { "excitationBufferSize",            &DelayLama::Core::DelayLamaAudio::excitationBufferSize            },
         { "excitationReadIndex",             &DelayLama::Core::DelayLamaAudio::excitationReadIndex             },
         { "sineTableSize",                   &DelayLama::Core::DelayLamaAudio::sineTableSize                   },
-        { "formantTableSize",                &DelayLama::Core::DelayLamaAudio::formantTableSize                },
+        { "decayTableSize",                &DelayLama::Core::DelayLamaAudio::decayTableSize                },
         { "glottalTableSize",                &DelayLama::Core::DelayLamaAudio::glottalTableSize                },
         { "frequencyTableSize",              &DelayLama::Core::DelayLamaAudio::frequencyTableSize              },
     };
@@ -165,11 +165,11 @@ TEST_F(DelayLamaAudioInitTest, Initialize_Scalars_Bools) {
     const auto& s = state["scalars"];
 
     const std::pair<const char*, bool DelayLama::Core::DelayLamaAudio::*> fields[] = {
-        { "vibratoDirty",             &DelayLama::Core::DelayLamaAudio::vibratoDirty             },
-        { "pitchValueDirty",          &DelayLama::Core::DelayLamaAudio::pitchValueDirty          },
-        { "pitchTargetDirty",         &DelayLama::Core::DelayLamaAudio::pitchTargetDirty         },
+        { "padPitchDirty",             &DelayLama::Core::DelayLamaAudio::padPitchDirty             },
+        { "padVowelDirty",          &DelayLama::Core::DelayLamaAudio::padVowelDirty          },
+        { "vowelBendDirty",         &DelayLama::Core::DelayLamaAudio::vowelBendDirty         },
         { "isGlideActive",            &DelayLama::Core::DelayLamaAudio::isGlideActive            },
-        { "formantTableNeedsUpdate",  &DelayLama::Core::DelayLamaAudio::formantTableNeedsUpdate  },
+        { "vowelBufferNeedsUpdate",  &DelayLama::Core::DelayLamaAudio::vowelBufferNeedsUpdate  },
         { "isGateActive",             &DelayLama::Core::DelayLamaAudio::isGateActive             },
         { "isSinging",                &DelayLama::Core::DelayLamaAudio::isSinging                },
         { "needsMonkAnimationRefresh",&DelayLama::Core::DelayLamaAudio::needsMonkAnimationRefresh },
@@ -218,7 +218,7 @@ TEST_F(DelayLamaAudioInitTest, Initialize_FixedArrays) {
         }
     };
 
-    // pitchInterpData1/2 are not initialized by the original either (they are only
+    // bendQueueLsb/2 are not initialized by the original either (they are only
     // written when pitch bends arrive), so the fixture holds leftover memory there.
     checkIntArray("noteStack",         audio->noteStack,         arrays["noteStack"].get<std::vector<int>>());
     checkFloatArray("monkIdleFrameTable", audio->monkIdleFrameTable, fixtureFloats(arrays["monkIdleFrameTable"]));
@@ -230,7 +230,7 @@ TEST_F(DelayLamaAudioInitTest, Initialize_PointerArrays_NotNull) {
     EXPECT_NE(audio->synthesisBuffer,    nullptr);
     EXPECT_NE(audio->excitationBuffer,   nullptr);
     EXPECT_NE(audio->sineTable,          nullptr);
-    EXPECT_NE(audio->formantTable,       nullptr);
+    EXPECT_NE(audio->decayTable,       nullptr);
     EXPECT_NE(audio->vocalEnvelope,      nullptr);
     EXPECT_NE(audio->glottalSource,      nullptr);
     EXPECT_NE(audio->harmonicBuffer,     nullptr);
@@ -251,7 +251,7 @@ TEST_F(DelayLamaAudioInitTest, Initialize_PointerArrays_Values) {
         // read glottalSource[0] == 0 and the buffer holds only harmonicBuffer / 2.
         { "excitationBuffer",   audio->excitationBuffer   },
         { "sineTable",          audio->sineTable          },
-        { "formantTable",       audio->formantTable       },
+        { "decayTable",       audio->decayTable       },
         { "vocalEnvelope",      audio->vocalEnvelope      },
         { "glottalSource",      audio->glottalSource      },
         { "harmonicBuffer",     audio->harmonicBuffer     },
