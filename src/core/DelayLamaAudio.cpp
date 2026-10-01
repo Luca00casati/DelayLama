@@ -1192,7 +1192,7 @@ namespace Core {
         this->vowelLookupIndex = vowelIndex;
 
         // resonanceGain widens/narrows all 3 formant rates together based on head size
-        float resonanceGain = this->headSize * 0.5f + 0.75f;
+        float resonanceGain = (float)(this->headSize * 0.5 + 0.75);
         this->vowelBlendFactor = resonanceGain;
 
         // Convert vowel index to integer for the formant frequency table lookup
@@ -1200,9 +1200,11 @@ namespace Core {
 
         // Per-formant frequency (Hz-ish) at this vowel position, converted to
         // glottalSource-table steps per sample via glottalPhaseInc (steps per Hz).
-        float glotStep1 = resonanceGain * this->formantTable1[tableIndex] * this->glottalPhaseInc;
-        float glotStep2 = resonanceGain * this->formantTable2[tableIndex] * this->glottalPhaseInc;
-        float glotStep3 = resonanceGain * this->formantTable3[tableIndex] * this->glottalPhaseInc;
+        // The original multiplies at x87 precision and rounds once to float; double
+        // does the same with SSE2 compilers.
+        float glotStep1 = (float)((double)resonanceGain * this->formantTable1[tableIndex] * this->glottalPhaseInc);
+        float glotStep2 = (float)((double)resonanceGain * this->formantTable2[tableIndex] * this->glottalPhaseInc);
+        float glotStep3 = (float)((double)resonanceGain * this->formantTable3[tableIndex] * this->glottalPhaseInc);
 
         if (this->numSamples <= 0) {
             return;
