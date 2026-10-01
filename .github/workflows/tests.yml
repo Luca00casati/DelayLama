@@ -9,12 +9,14 @@ on:
       - 'tests/**'
       - 'CMakeLists.txt'
       - 'CMakePresets.json'
+      - '.github/workflows/tests.yml'
   pull_request:
     paths:
       - 'src/**'
       - 'tests/**'
       - 'CMakeLists.txt'
       - 'CMakePresets.json'
+      - '.github/workflows/tests.yml'
   workflow_dispatch:
 
 concurrency:
@@ -47,6 +49,15 @@ jobs:
 
       - name: Run tests
         run: ctest --test-dir build/vs2022 --output-on-failure
+
+      - name: Show test failures
+        if: failure()
+        shell: pwsh
+        run: |
+          Get-Content build/vs2022/Testing/Temporary/LastTest.log |
+            Select-String -Pattern 'Failure|expected|Expected|Which is|differ|NaN|FAILED' |
+            Select-Object -First 30 |
+            ForEach-Object { Write-Output "::error::$($_.Line.Trim())" }
 
       - name: Upload Test Logs
         if: failure()
