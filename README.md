@@ -38,7 +38,7 @@ Most member names in the DelayLamaAudio class have been checked against what the
 - [x] Turn the Ghidra findings and functions into actual C++ code.
 - [ ] Get a fully working 32-bit build. (Actually getting pretty close to this, though the current version isn't very accurate)
 - [ ] Clean up source code to improve the maintainability and readability of the codebase, without changing the functionality.
-- [ ] Hopefully get a 64-bit build of Delay Lama working.
+- [x] Hopefully get a 64-bit build of Delay Lama working. (Builds and matches the original under Wine; testing in real DAWs welcome.)
 - [ ] And lastly, if at all possible, get the project to compile to a fully byte accurate binary that 100% matches the original dll. (I've already added [Reccmp](https://github.com/isledecomp/reccmp) to help showing the current progress)
 
 I think it'd also be fun to make a very accurate 3D model of the Monk himself and his environment as a Blend file, but I haven't yet decided if I actually wanna do that.
@@ -69,11 +69,23 @@ DelayLama/
 - Other than that not yet determined
 
 ### Build Instructions
+The interface bitmaps are not in the repository; extract them from your copy of the original plugin first:
 ```sh
-cmake -B build -A Win32
-cmake --build build --config Release
+python extract_assets.py "Delay Lama.dll" --output assets/interface
 ```
-(More build instructions will come later when the build process is less crappy.)
+
+32-bit (like the original):
+```sh
+cmake --preset vs2022
+cmake --build --preset vs2022 --config Release
+```
+
+64-bit (for modern DAWs):
+```sh
+cmake --preset vs2022-x64
+cmake --build --preset vs2022-x64 --config Release
+```
+The plugin is written to `build/bin/vs2022/<x32|x64>/Release/DelayLama.dll`. The 64-bit build produces the same audio as the original (checked by the unit tests) and draws the same interface.
 
 ## Documentation
 

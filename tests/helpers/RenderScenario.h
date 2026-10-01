@@ -28,8 +28,8 @@ namespace RenderScenario {
         int32_t numInputs;
         int32_t numOutputs;
         int32_t flags;
-        int32_t reserved1;
-        int32_t reserved2;
+        intptr_t reserved1;
+        intptr_t reserved2;
         int32_t initialDelay;
         int32_t realQualities;
         int32_t offQualities;

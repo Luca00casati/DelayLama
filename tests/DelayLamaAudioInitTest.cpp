@@ -9,7 +9,7 @@
 
 using json = nlohmann::json;
 
-static intptr_t stubHostCallback(struct DamSDK::Api::DamPlugin* plugin, int32_t targetOperation, int32_t index, int32_t value, void * data, float optional) {
+static intptr_t stubHostCallback(struct DamSDK::Api::DamPlugin* plugin, int32_t targetOperation, int32_t index, intptr_t value, void * data, float optional) {
     return 0;
 }
 
