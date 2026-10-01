@@ -710,24 +710,37 @@ namespace Core {
                 this->portamentoTime = value;
                 break;
             }
+            case SingingHorizontalSliderParameterId: // Vibrato Depth
+            {
+                this->vibratoDepthCurrent = value;
+                break;
+            }
             case SingingVerticalSliderParameterId: // Vowel
             {
                 this->curVowelValue = value;
 
                 if (this->isSinging)
                 {
-                    const float monkSprite = value * 24.0f * 0.033333335f + 0.2f;
+                    const float monkSprite = (value * 24.0f) * (1.0f / 30.0f) + 0.2f;
                     this->monkSprite = monkSprite;
 
                     this->setParameterValue(MonkSpriteParameterId, monkSprite);
 
                     if (this->curVowelValue != this->prevVowelValue)
                     {
-                        synthesizeVowelBuffer(value);
+                        synthesizeVowelBuffer(this->curVowelValue);
                     }
                 }
 
                 this->prevVowelValue = this->curVowelValue;
+                break;
+            }
+            case MonkSpriteParameterId: // Monk Sprite
+            {
+                if (!this->isSinging)
+                {
+                    this->monkSprite = value;
+                }
                 break;
             }
             case ReverbSliderParameterId: // Delay
@@ -745,19 +758,6 @@ namespace Core {
                 }
                 break;
             }
-            case SingingHorizontalSliderParameterId: // Vibrato Depth
-            {
-                this->vibratoDepthCurrent = value;
-                break;
-            }
-            case MonkSpriteParameterId: // Monk Sprite
-            {
-                if (!this->isSinging)
-                {
-                    this->monkSprite = value;
-                }
-                break;
-            }
             case SingingEnabledParameterId: // Note trigger
             {
                 if (value != 0.0f)
@@ -770,7 +770,7 @@ namespace Core {
                     if (this->noteStack[0] == 0)
                     {
                         this->isSinging = false;
-                        this->setParameterValue(MonkSpriteParameterId, MONK_FRAME_VAL(0, 5));
+                        this->setParameterValue(MonkSpriteParameterId, 0.1667f); // idle frame, as in monkIdleFrameTable
 
                         this->currentIdleFrame = 0;
                         this->needsMonkAnimationRefresh = true;
@@ -778,17 +778,6 @@ namespace Core {
                         sendMidiToHost(0x80, 40, 64); // Note Off
                     }
                 }
-                break;
-            }
-            case PitchValueParameterId: // Pitch Bend
-            {
-                this->pitchValueDirty = true;
-                this->pitchValue = value;
-
-                const int midiValue = static_cast<int>(value * 127.0f);
-                this->midiDataValue = midiValue;
-
-                sendMidiToHost(0xE0, 0, midiValue);
                 break;
             }
             case VibratoAmountParameterId: // MIDI CC
@@ -800,6 +789,17 @@ namespace Core {
                 this->midiDataValue = midiValue;
 
                 sendMidiToHost(0xB0, 0x0B, midiValue);
+                break;
+            }
+            case PitchValueParameterId: // Pitch Bend
+            {
+                this->pitchValueDirty = true;
+                this->pitchValue = value;
+
+                const int midiValue = static_cast<int>(value * 127.0f);
+                this->midiDataValue = midiValue;
+
+                sendMidiToHost(0xE0, 0, midiValue);
                 break;
             }
             default:

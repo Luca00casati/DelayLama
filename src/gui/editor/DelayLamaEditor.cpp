@@ -48,13 +48,7 @@ namespace Gui{
     // FUNCTION: DELAYLAMA 0x10004210
     void DelayLamaEditor::valueChanged(GDIDrawingContext *drawingContext, Control *control)
     {
-        if (control == nullptr)
-            return;
-
-        const int parameterId = control->parameterId;
-        const float value = control->getValue();
-        Utils::logf("DelayLamaEditor::onControlChanged id=%d value=%f\n", parameterId, value);
-
+        int parameterId = control->parameterId;
         switch (parameterId)
         {
             case LeftVoiceKnobParameterId:
@@ -63,44 +57,34 @@ namespace Gui{
             case RightGlideKnobParameterId:
             case SingingHorizontalSliderParameterId:
             case MonkSpriteParameterId:
-            {
-                this->mainPlugin->setParameterValue(parameterId, value);
+                // Also tells the host, so it can record the change as automation
+                this->mainPlugin->automateHostParameter(parameterId, control->getValue());
                 control->update(drawingContext);
-                return;
-            }
+                break;
 
             case TwoAxisSliderParameterId:
             {
-                // Update horizontal and vertical sliders when clicking on TwoAxisSlider
-                if (value > -2.0f && value < 3.0f)
-                {
-                    // X-axis update (vibrato amount, 0-1 normalized)
+                // The singing pad reports several things through one value:
+                // -2..3 the vibrato amount, 98..103 the pitch (100 + inverted pitch),
+                // 200 / 201 singing off / on.
+                float value = control->getValue();
+                if (-2.0f < value && value < 3.0f)
                     this->mainPlugin->setParameterValue(VibratoAmountParameterId, value);
+
+                if (98.0f < value && value < 103.0f) {
+                    value = (float)((value - 100.0f) * -1.0f) + 1.0f;
+                    this->mainPlugin->setParameterValue(PitchValueParameterId, value);
                 }
- 
-                if (value > 98.0f && value < 103.0f)
-                {
-                    // Y-axis update (pitch, 100-101 range -> normalized, inverted)
-                    const float pitchValue = 1.0f - (value - 100.0f);
-                    this->mainPlugin->setParameterValue(PitchValueParameterId, pitchValue);
-                }
- 
+
                 if (value == 200.0f)
-                {
                     this->mainPlugin->setParameterValue(SingingEnabledParameterId, 0.0f);
-                }
- 
+
                 if (value == 201.0f)
-                {
                     this->mainPlugin->setParameterValue(SingingEnabledParameterId, 1.0f);
-                }
- 
+
                 control->update(drawingContext);
-                 
-                return;
+                break;
             }
-            default:
-                return;
         }
     }
 
@@ -354,39 +338,28 @@ namespace Gui{
         switch (parameterIndex)
         {
             case LeftVoiceKnobParameterId:
-                if (this->leftKnob != nullptr) {
+                if (this->leftKnob != nullptr)
                     this->leftKnob->setValue(this->mainPlugin->getParameterValue(LeftVoiceKnobParameterId));
-                    invalidate();
-                }
-                break;
-            case SingingVerticalSliderParameterId:
-                if (this->singingVerticalSlider != nullptr) {
-                    this->singingVerticalSlider->setValue(this->mainPlugin->getParameterValue(SingingVerticalSliderParameterId));
-                    invalidate();
-                }
-                break;
-            case ReverbSliderParameterId:
-                if (this->reverbSlider != nullptr) {
-                    this->reverbSlider->setValue(this->mainPlugin->getParameterValue(ReverbSliderParameterId));
-                    invalidate();
-                }
                 break;
             case RightGlideKnobParameterId:
-                if (this->rightKnob != nullptr) {
+                if (this->rightKnob != nullptr)
                     this->rightKnob->setValue(this->mainPlugin->getParameterValue(RightGlideKnobParameterId));
-                    invalidate();
-                }
                 break;
-            case SingingHorizontalSliderParameterId:
-                if (this->singingHorizontalSlider != nullptr) {
-                    this->singingHorizontalSlider->setValue(this->mainPlugin->getParameterValue(SingingHorizontalSliderParameterId));
-                }
+            case SingingVerticalSliderParameterId:
+                if (this->singingVerticalSlider != nullptr)
+                    this->singingVerticalSlider->setValue(this->mainPlugin->getParameterValue(SingingVerticalSliderParameterId));
                 break;
             case MonkSpriteParameterId:
-                if (this->monk != nullptr) {
+                if (this->monk != nullptr)
                     this->monk->setValue(this->mainPlugin->getParameterValue(MonkSpriteParameterId));
-                    invalidate();
-                }
+                break;
+            case ReverbSliderParameterId:
+                if (this->reverbSlider != nullptr)
+                    this->reverbSlider->setValue(this->mainPlugin->getParameterValue(ReverbSliderParameterId));
+                break;
+            case SingingHorizontalSliderParameterId:
+                if (this->singingHorizontalSlider != nullptr)
+                    this->singingHorizontalSlider->setValue(this->mainPlugin->getParameterValue(SingingHorizontalSliderParameterId));
                 break;
             default:
                 break;
